@@ -10,7 +10,7 @@ def get_base():
         return BASE
     with open('font_data.csv', newline='') as csvfile:
         BASE = {}
-        reader = csv.reader(csvfile)
+        reader = csv.reader(csvfile, quotechar='"')
         for row in reader:
             if row[0] not in BASE:
                 BASE[row[0]] = {}
@@ -32,15 +32,20 @@ def convert_char(char, font_name):
     if font_name not in base:
         logging.warn("unknown font: "+font_name)
         return None
+
+def _convert_car(char, font_name):
+    base = get_base()
+    if char == "\u00a0":
+        char = " "
     if char not in base[font_name]:
-        logging.error("unknown character: '"+char+"' in "+font_name)
+        logging.error("unknown character: '%s' (%d) in %s" % (char, ord(char), font_name))
         return ""
     res = base[font_name][char]
     if res == ERROR_CHR:
         return ''
     return res
 
-def convert_str(s, font_name):
+def convert_string(s, font_name):
     if font_name in FONT_ALIASES:
         font_name = FONT_ALIASES[font_name]
     if font_name.startswith("Dedris"):
@@ -51,11 +56,5 @@ def convert_str(s, font_name):
         return None
     res = ''
     for char in s:
-        if char not in base[font_name]:
-            logging.error("unknown character: '"+char+"' in "+font_name)
-            continue
-        resc = base[font_name][char]
-        if resc == ERROR_CHR:
-            continue
-        res += resc
+        res += _convert_car(char, font_name)
     return res

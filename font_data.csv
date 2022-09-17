@@ -3342,7 +3342,7 @@ Ededris-g3,122,ཱུ
 Ededris-g3,123,ཱུ
 Ededris-g3,124,ཱུ
 Ededris-g3,125,་ཱུ
-Ededris-vowa,32, 
+Ededris-vowa,32," "
 Ededris-vowa,33,༄༅
 Ededris-vowa,35,༄༅༅
 Ededris-vowa,36,༅
@@ -3437,12 +3437,12 @@ Ededris-vowa,125,
 Ededris-vowa,126,
 Ededris-vowa,34,
 Ededris-vowa,96,་
-Ededris-sym,32, 
+Ededris-sym,32," "
 Ededris-sym,123,(
 Ededris-sym,125,)
 Ededris-sym,91,(
 Ededris-sym,93,)
-TibetanChogyal,32, 
+TibetanChogyal,32," "
 TibetanChogyal,33,ཀ
 TibetanChogyal,34,ཁ
 TibetanChogyal,35,ག
@@ -3691,7 +3691,7 @@ TibetanChogyal,8362,ཅྭ
 TibetanChogyal,8366,ཏྭ
 TibetanChogyal,8367,དྭ
 TibetanChogyal,8368,ཉྭ
-TibetanClassic,32, 
+TibetanClassic,32," "
 TibetanClassic,33,ཀ
 TibetanClassic,34,ཁ
 TibetanClassic,35,ག
@@ -3940,7 +3940,7 @@ TibetanClassic,8362,ཅྭ
 TibetanClassic,8366,ཏྭ
 TibetanClassic,8367,དྭ
 TibetanClassic,8368,ཉྭ
-TibetanChogyalSkt1,32, 
+TibetanChogyalSkt1,32," "
 TibetanChogyalSkt1,33,ཀྐ
 TibetanChogyalSkt1,34,ཀྑ
 TibetanChogyalSkt1,35,ཀྔ
@@ -4189,7 +4189,7 @@ TibetanChogyalSkt1,8362,ཛྷྲ
 TibetanChogyalSkt1,8366,ཛྷྭ
 TibetanChogyalSkt1,8367,ཉྩ
 TibetanChogyalSkt1,8368,ཉྴ
-TibetanChogyalSkt2,32, 
+TibetanChogyalSkt2,32," "
 TibetanChogyalSkt2,33,ཏྐྭ
 TibetanChogyalSkt2,34,ཏྙ
 TibetanChogyalSkt2,35,ཏྛ
@@ -4381,7 +4381,7 @@ TibetanChogyalSkt2,251,བྷྨ
 TibetanChogyalSkt2,252,ཏྤྲ
 TibetanChogyalSkt2,253,ནྨ
 TibetanChogyalSkt2,254,བྦྷ
-TibetanChogyalSkt2,338,པྟྲྱ 
+TibetanChogyalSkt2,338,པྟྲྱ
 TibetanChogyalSkt2,339,བྡྷྭ
 TibetanChogyalSkt2,352,པྟ
 TibetanChogyalSkt2,353,བྡྫ
@@ -4406,7 +4406,7 @@ TibetanChogyalSkt2,8249,པྟྱ
 TibetanChogyalSkt2,8250,བྡྷ
 TibetanChogyalSkt2,8364,ནྦྷྱ
 TibetanChogyalSkt2,8482,བྡ
-TibetanChogyalSkt2,240,པྟྲྱ 
+TibetanChogyalSkt2,240,པྟྲྱ
 TibetanChogyalSkt2,57348,བྟ
 TibetanChogyalSkt2,128,ནྦྷྱ
 TibetanChogyalSkt2,130,ནྱ
@@ -4419,7 +4419,7 @@ TibetanChogyalSkt2,136,ནྷ
 TibetanChogyalSkt2,137,ནྷྲ
 TibetanChogyalSkt2,138,པྟ
 TibetanChogyalSkt2,139,བྡྷ
-TibetanChogyalSkt2,140,པྟྲྱ 
+TibetanChogyalSkt2,140,པྟྲྱ
 TibetanChogyalSkt2,145,པླ
 TibetanChogyalSkt2,146,པྭ
 TibetanChogyalSkt2,147,པྶ
@@ -4438,7 +4438,7 @@ TibetanChogyalSkt2,8362,པྣ
 TibetanChogyalSkt2,8366,པྤ
 TibetanChogyalSkt2,8367,པྨ
 TibetanChogyalSkt2,8368,བྟ
-TibetanChogyalSkt3,32, 
+TibetanChogyalSkt3,32," "
 TibetanChogyalSkt3,33,རྟྭ
 TibetanChogyalSkt3,34,རྟྟ
 TibetanChogyalSkt3,35,རྟྶ
@@ -4550,7 +4550,7 @@ TibetanChogyalSkt3,170,
 TibetanChogyalSkt3,171,
 TibetanChogyalSkt3,172,
 TibetanChogyalSkt3,173,
-TibetanChogyalSkt3,174, ༹
+TibetanChogyalSkt3,174,༹
 TibetanChogyalSkt3,175,ྱ
 TibetanChogyalSkt3,176,ྲ
 TibetanChogyalSkt3,177,ྲ
@@ -4687,7 +4687,7 @@ TibetanChogyalSkt3,8362,ཀྵླ
 TibetanChogyalSkt3,8366,ཨྱ
 TibetanChogyalSkt3,8367,ཨྲ
 TibetanChogyalSkt3,8368,
-TibetanChogyalSkt4,32, 
+TibetanChogyalSkt4,32," "
 TibetanChogyalSkt4,33,༊
 TibetanChogyalSkt4,34,࿐
 TibetanChogyalSkt4,35,࿑
@@ -4854,7 +4854,7 @@ TibetanChogyalSkt4,225,ཚ
 TibetanChogyalSkt4,226,ཛ
 TibetanChogyalSkt4,227,ཛྷ
 TibetanChogyalSkt4,228,ཝ
-TibetanChogyalSkt4,229,ཞ 
+TibetanChogyalSkt4,229,ཞ
 TibetanChogyalSkt4,230,ཟ
 TibetanChogyalSkt4,231,འ
 TibetanChogyalSkt4,232,ཡ
@@ -4936,7 +4936,7 @@ TibetanChogyalSkt4,8362,
 TibetanChogyalSkt4,8366,
 TibetanChogyalSkt4,8367,
 TibetanChogyalSkt4,8368,
-TibetanChogyalSkt5,32, 
+TibetanChogyalSkt5,32," "
 TibetanChogyalSkt5,33,༠༠༠༠
 TibetanChogyalSkt5,34,༠༠༠༠
 TibetanChogyalSkt5,35,༠༠༠༠
@@ -5185,7 +5185,7 @@ TibetanChogyalSkt5,8362,༠༠༠༠
 TibetanChogyalSkt5,8366,༠༠༠༠
 TibetanChogyalSkt5,8367,༠༠༠༠
 TibetanChogyalSkt5,8368,༠༠༠༠
-TibetanClassicSkt1,32, 
+TibetanClassicSkt1,32," "
 TibetanClassicSkt1,33,ཀྐ
 TibetanClassicSkt1,34,ཀྑ
 TibetanClassicSkt1,35,ཀྔ
@@ -5434,7 +5434,7 @@ TibetanClassicSkt1,8362,ཛྷྲ
 TibetanClassicSkt1,8366,ཛྷྭ
 TibetanClassicSkt1,8367,ཉྩ
 TibetanClassicSkt1,8368,ཉྴ
-TibetanClassicSkt2,32, 
+TibetanClassicSkt2,32," "
 TibetanClassicSkt2,33,ཏྐྭ
 TibetanClassicSkt2,34,ཏྙ
 TibetanClassicSkt2,35,ཏྛ
@@ -5626,7 +5626,7 @@ TibetanClassicSkt2,251,བྷྨ
 TibetanClassicSkt2,252,ཏྤྲ
 TibetanClassicSkt2,253,ནྨ
 TibetanClassicSkt2,254,བྦྷ
-TibetanClassicSkt2,338,པྟྲྱ 
+TibetanClassicSkt2,338,པྟྲྱ
 TibetanClassicSkt2,339,བྡྷྭ
 TibetanClassicSkt2,352,པྟ
 TibetanClassicSkt2,353,བྡྫ
@@ -5664,7 +5664,7 @@ TibetanClassicSkt2,136,ནྷ
 TibetanClassicSkt2,137,ནྷྲ
 TibetanClassicSkt2,138,པྟ
 TibetanClassicSkt2,139,བྡྷ
-TibetanClassicSkt2,140,པྟྲྱ 
+TibetanClassicSkt2,140,པྟྲྱ
 TibetanClassicSkt2,145,པླ
 TibetanClassicSkt2,146,པྭ
 TibetanClassicSkt2,147,པྶ
@@ -5683,7 +5683,7 @@ TibetanClassicSkt2,8362,པྣ
 TibetanClassicSkt2,8366,པྤ
 TibetanClassicSkt2,8367,པྨ
 TibetanClassicSkt2,8368,བྟ
-TibetanClassicSkt3,32, 
+TibetanClassicSkt3,32," "
 TibetanClassicSkt3,33,རྟྭ
 TibetanClassicSkt3,34,རྟྟ
 TibetanClassicSkt3,35,རྟྶ
@@ -5795,7 +5795,7 @@ TibetanClassicSkt3,170,
 TibetanClassicSkt3,171,
 TibetanClassicSkt3,172,
 TibetanClassicSkt3,173,
-TibetanClassicSkt3,174, ༹
+TibetanClassicSkt3,174,༹
 TibetanClassicSkt3,175,ྱ
 TibetanClassicSkt3,176,ྲ
 TibetanClassicSkt3,177,ྲ
@@ -5932,7 +5932,7 @@ TibetanClassicSkt3,8362,ཀྵླ
 TibetanClassicSkt3,8366,ཨྱ
 TibetanClassicSkt3,8367,ཨྲ
 TibetanClassicSkt3,8368,
-TibetanClassicSkt4,32, 
+TibetanClassicSkt4,32," "
 TibetanClassicSkt4,33,༊
 TibetanClassicSkt4,34,࿐
 TibetanClassicSkt4,35,࿑
@@ -6099,7 +6099,7 @@ TibetanClassicSkt4,225,ཚ
 TibetanClassicSkt4,226,ཛ
 TibetanClassicSkt4,227,ཛྷ
 TibetanClassicSkt4,228,ཝ
-TibetanClassicSkt4,229,ཞ 
+TibetanClassicSkt4,229,ཞ
 TibetanClassicSkt4,230,ཟ
 TibetanClassicSkt4,231,འ
 TibetanClassicSkt4,232,ཡ
@@ -6181,7 +6181,7 @@ TibetanClassicSkt4,8362,
 TibetanClassicSkt4,8366,
 TibetanClassicSkt4,8367,
 TibetanClassicSkt4,8368,
-TibetanClassicSkt5,32, 
+TibetanClassicSkt5,32," "
 TibetanClassicSkt5,33,༠༠༠༠
 TibetanClassicSkt5,34,༠༠༠༠
 TibetanClassicSkt5,35,༠༠༠༠
@@ -6443,7 +6443,7 @@ TibetanMachineWeb,41,ཏ
 TibetanMachineWeb,42,ཐ
 TibetanMachineWeb,43,ད
 TibetanMachineWeb,44,ན
-TibetanMachineWeb,45, 
+TibetanMachineWeb,45," "
 TibetanMachineWeb,46,པ
 TibetanMachineWeb,47,ཕ
 TibetanMachineWeb,48,བ
@@ -6620,7 +6620,7 @@ TibetanMachineWeb1,124,
 TibetanMachineWeb1,125,སྒ
 TibetanMachineWeb1,126,སྐྲ
 TibetanMachineWeb1,96,སྣ
-TibetanMachineWeb1,145, 
+TibetanMachineWeb1,145," "
 TibetanMachineWeb1,146,་
 TibetanMachineWeb2,32,་
 TibetanMachineWeb2,33,ཀྐ
@@ -6717,7 +6717,7 @@ TibetanMachineWeb2,125,ཚྲ
 TibetanMachineWeb2,126,ཀྑ
 TibetanMachineWeb2,96,ངྒྲ
 TibetanMachineWeb2,145,ཀྟྲ
-TibetanMachineWeb2,146, 
+TibetanMachineWeb2,146," "
 TibetanMachineWeb3,32,་
 TibetanMachineWeb3,33,ཚླ
 TibetanMachineWeb3,34,ཎྚ
@@ -6813,7 +6813,7 @@ TibetanMachineWeb3,125,ུ
 TibetanMachineWeb3,126,ཛྫ
 TibetanMachineWeb3,96,ཎྚ
 TibetanMachineWeb3,145,ཛྙ
-TibetanMachineWeb3,146, 
+TibetanMachineWeb3,146," "
 TibetanMachineWeb4,33,ཎྱ
 TibetanMachineWeb4,34,ཊྒ
 TibetanMachineWeb4,35,ཏྐྲ
@@ -6906,7 +6906,7 @@ TibetanMachineWeb4,123,ནྡྷྲ
 TibetanMachineWeb4,124,ནྡྷྱ
 TibetanMachineWeb4,125,ཎྭ
 TibetanMachineWeb4,126,དྭྱ
-TibetanMachineWeb4,96, 
+TibetanMachineWeb4,96," "
 TibetanMachineWeb4,145,་
 TibetanMachineWeb5,33,ནྣ
 TibetanMachineWeb5,34,ནྨ
@@ -7000,7 +7000,7 @@ TibetanMachineWeb5,123,ུ
 TibetanMachineWeb5,124,ནྣྱ
 TibetanMachineWeb5,125,མྶ
 TibetanMachineWeb5,126,མྶ
-TibetanMachineWeb5,96, 
+TibetanMachineWeb5,96," "
 TibetanMachineWeb5,145,་
 TibetanMachineWeb6,32,་
 TibetanMachineWeb6,33,རྩ
@@ -7097,7 +7097,7 @@ TibetanMachineWeb6,125,སྣྱ
 TibetanMachineWeb6,126,རྫྙ
 TibetanMachineWeb6,96,ཤྴ
 TibetanMachineWeb6,145,རྞ
-TibetanMachineWeb6,146, 
+TibetanMachineWeb6,146," "
 TibetanMachineWeb7,32,་
 TibetanMachineWeb7,33,སྣྭ
 TibetanMachineWeb7,34,སྥ
@@ -7193,7 +7193,7 @@ TibetanMachineWeb7,125,ུ
 TibetanMachineWeb7,126,ུ
 TibetanMachineWeb7,96,ིཾ
 TibetanMachineWeb7,145,སྶྭ
-TibetanMachineWeb7,146, 
+TibetanMachineWeb7,146," "
 TibetanMachineWeb8,33,༊
 TibetanMachineWeb8,34,༻
 TibetanMachineWeb8,35,༉

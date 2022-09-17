@@ -22,7 +22,7 @@ from pdfminer.layout import LTTextBoxVertical
 from pdfminer.layout import LTTextGroup
 from pdfminer.layout import LTTextLine
 from pdfminer.utils import AnyIO, Point, Matrix, Rect, PathSegment, make_compat_str, compatible_encode_method
-from char_converter import convert_char
+from char_converter import convert_string
 
 from typing import (
     BinaryIO,
@@ -79,7 +79,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
             return
         fontname = item.fontname
         fontname = fontname[fontname.find('+')+1:]
-        ctext = convert_char(text, fontname)
+        ctext = convert_string(text, fontname)
         if ctext is not None:
             text = ctext
         self.write_text(text)
