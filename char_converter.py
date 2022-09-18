@@ -19,21 +19,20 @@ def get_base():
 
 FONT_ALIASES = {
     "Dedris-syma": "Ededris-sym",
+    "Ededris-syma": "Ededris-sym",
     "TibetanClassicSkt": "TibetanClassicSkt1",
     "TibetanChogyalSkt": "TibetanChogyalSkt1",
 }
 
-def convert_char(char, font_name):
-    if font_name in FONT_ALIASES:
-        font_name = FONT_ALIASES[font_name]
-    if font_name.startswith("Dedris"):
-        font_name = "Ed"+font_name[1:]
-    base = get_base()
-    if font_name not in base:
-        logging.warn("unknown font: "+font_name)
-        return None
+def uni_char_from_encoding(nonunicp, encoding="cp1252"):
+    noncpbytes = nonunicp.to_bytes(1, "big")
+    try:
+        unistr = noncpbytes.decode("cp1252")
+        logging.debug("decoding %d (%s) into %s (%d)" % (nonunicp, noncpbytes.hex(), unistr, ord(unistr)))
+    except UnicodeDecodeError:
+        continue
 
-def _convert_car(char, font_name):
+def _convert_char(char, font_name):
     base = get_base()
     if char == "\u00a0":
         char = " "
@@ -50,11 +49,13 @@ def convert_string(s, font_name):
         font_name = FONT_ALIASES[font_name]
     if font_name.startswith("Dedris"):
         font_name = "Ed"+font_name[1:]
+    if font_name.startswith("Sam") and len(font_name) == 4:
+        font_name = "Es"+font_name[1:]
     base = get_base()
     if font_name not in base:
         logging.warn("unknown font: "+font_name)
         return None
     res = ''
     for char in s:
-        res += _convert_car(char, font_name)
+        res += _convert_char(char, font_name)
     return res
