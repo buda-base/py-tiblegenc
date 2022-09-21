@@ -18,10 +18,17 @@ def deduffed_txt_from_pdf(pdf_file_name, region=None, page_break_str="\n\n-- pag
         parser = PDFParser(in_file)
         doc = PDFDocument(parser)
         rsrcmgr = PDFResourceManager()
-        device = DuffedTextConverter(rsrcmgr, output_string, region = REGION, pbs = page_break_str)
+        device = DuffedTextConverter(rsrcmgr, output_string, region = region, pbs = page_break_str)
         interpreter = PDFPageInterpreter(rsrcmgr, device)
+        pnum = 1
         for page in PDFPage.create_pages(doc):
+            #if pnum == 1:
+            #    pnum += 1
+            #    continue
+            #if pnum == 3:
+            #    break
             interpreter.process_page(page)
+            pnum += 1
     res = output_string.getvalue()
     res = re.sub(r"\n\n+", "\n", res)
     return res
@@ -35,4 +42,4 @@ def deduff_folder(input_folder="input/", output_folder="output/", region=None, p
         with open(txt_path, "w") as f:
             f.write(txt)
 
-deduff_folder("input/", "output/", [120,0,950,100000], "\n\n-- page {} --\n\n")
+deduff_folder("input/", "output/", [0,50,1000000,500], "\n\n-- page {} --\n\n")
