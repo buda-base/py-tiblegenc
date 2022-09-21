@@ -23,6 +23,7 @@ from pdfminer.layout import LTTextGroup
 from pdfminer.layout import LTTextLine
 from pdfminer.utils import AnyIO, Point, Matrix, Rect, PathSegment, make_compat_str, compatible_encode_method
 from char_converter import convert_string
+import logging
 
 from typing import (
     BinaryIO,
@@ -61,21 +62,27 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
             self.region.append(region[1]+region[3])
         self.pbs = pbs
 
-    def in_region(self, item):
+    def in_region(self, item, ltpage):
         if not self.region or not hasattr(item, "x0"):
             return True
         if item.x0 < self.region[0] or item.y0 < self.region[1]:
             return False
         if item.x1 > self.region[4] or item.y1 > self.region[5]:
             return False
+        # remove if you also want to convert invisible characters
+        if hasattr(ltpage, "x0"):
+            if item.x0 < ltpage.x0 or item.x1 > ltpage.x1 or item.y0 < ltpage.y0 or item.y1 > ltpage.y1:
+                return False
         return True
 
-    def convert_item(self, item) -> None:
+    def convert_item(self, item, ltpage) -> None:
         text = item.get_text()
         if not hasattr(item, "fontname"):
             self.write_text(text)
             return
-        if not self.in_region(item):
+        if not self.in_region(item, ltpage):
+            if hasattr(item, "x0"):
+               logging.debug("x0: %f, x1: %f, y0: %f, y1: %f, in_region=False" % (item.x0, item.x1, item.y0, item.y1))
             return
         fontname = item.fontname
         fontname = fontname[fontname.find('+')+1:]
@@ -97,7 +104,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
                 for child in item:
                     render(child)
             elif isinstance(item, LTText):
-                self.convert_item(item)
+                self.convert_item(item, ltpage)
             if isinstance(item, LTTextBox):
                 self.write_text("\n")
             elif isinstance(item, LTImage):
