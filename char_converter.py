@@ -3,6 +3,7 @@ import logging
 
 BASE = None
 ERROR_CHR = "༠༠༠༠"
+DEBUGMODE = True
 
 def get_base():
     global BASE
@@ -30,7 +31,7 @@ def uni_char_from_encoding(nonunicp, encoding="cp1252"):
         unistr = noncpbytes.decode("cp1252")
         logging.debug("decoding %d (%s) into %s (%d)" % (nonunicp, noncpbytes.hex(), unistr, ord(unistr)))
     except UnicodeDecodeError:
-        continue
+        return
 
 def _convert_char(char, font_name):
     base = get_base()
@@ -38,7 +39,10 @@ def _convert_char(char, font_name):
         char = " "
     if char not in base[font_name]:
         logging.error("unknown character: '%s' (%d) in %s" % (char, ord(char), font_name))
-        return ""
+        if DEBUGMODE:
+            return "%s,%d,?(%s)" % (font_name, ord(char), char)
+        else:
+            return ""
     res = base[font_name][char]
     if res == ERROR_CHR:
         return ''
