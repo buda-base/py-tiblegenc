@@ -46,6 +46,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         self,
         rsrcmgr: PDFResourceManager,
         outfp: AnyIO,
+        stats: dict,
         codec: str = "utf-8",
         pageno: int = 1,
         laparams: Optional[LAParams] = USUAL_LA_PARAMS,
@@ -56,6 +57,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         super().__init__(rsrcmgr, outfp, codec=codec, pageno=pageno, laparams=laparams)
         self.imagewriter = imagewriter
         self.region = region
+        self.stats = stats
         if region:
             # adding x2 and y2
             self.region.append(region[0]+region[2])
@@ -86,7 +88,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
             return
         fontname = item.fontname
         fontname = fontname[fontname.find('+')+1:]
-        ctext = convert_string(text, fontname)
+        ctext = convert_string(text, fontname, self.stats)
         if ctext is not None:
             text = ctext
         self.write_text(text)

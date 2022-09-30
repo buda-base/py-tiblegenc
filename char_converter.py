@@ -33,14 +33,20 @@ def uni_char_from_encoding(nonunicp, encoding="cp1252"):
     except UnicodeDecodeError:
         return
 
-def _convert_char(char, font_name):
+def _convert_char(char, font_name, stats):
     base = get_base()
     if char == "\u00a0":
         char = " "
     if char not in base[font_name]:
-        logging.error("unknown character: '%s' (%d) in %s" % (char, ord(char), font_name))
+        if font_name not in stats["unknown_characters"]:
+            stats["unknown_characters"][font_name] = {}
+        if char not in stats["unknown_characters"][font_name]:
+            stats["unknown_characters"][font_name][char] = 0
+        stats["unknown_characters"][font_name][char] += 1
+        #logging.error("unknown character: '%s' (%d) in %s" % (char, ord(char), font_name))
         if DEBUGMODE:
-            return "%s,%d,?(%s)" % (font_name, ord(char), char)
+            #return "%s,%d,?(%s)" % (font_name, ord(char), char)
+            return "[[%s]]" % (char)
         else:
             return ""
     res = base[font_name][char]
@@ -48,7 +54,7 @@ def _convert_char(char, font_name):
         return ''
     return res
 
-def convert_string(s, font_name):
+def convert_string(s, font_name, stats):
     if font_name in FONT_ALIASES:
         font_name = FONT_ALIASES[font_name]
     if font_name.startswith("Dedris"):
@@ -57,9 +63,11 @@ def convert_string(s, font_name):
         font_name = "Es"+font_name[1:]
     base = get_base()
     if font_name not in base:
-        logging.warn("unknown font: "+font_name)
+        if font_name not in stats["unhandled_fonts"]:
+            stats["unhandled_fonts"][font_name] = 0
+        stats["unhandled_fonts"][font_name] += 1
         return None
     res = ''
     for char in s:
-        res += _convert_char(char, font_name)
+        res += _convert_char(char, font_name, stats)
     return res
