@@ -4,7 +4,7 @@ import logging
 BASE = None
 UTFC_BASE = None
 ERROR_CHR = "༠༠༠༠"
-DEBUGMODE = True
+DEBUGMODE = False
 
 def get_base():
     global BASE
@@ -78,7 +78,10 @@ def _convert_char(char, font_name, stats):
             return res
     if res == ERROR_CHR:
         stats["error_characters"] += 1
-        return ''
+        if DEBUGMODE:
+            return '[[ERR]]'
+        else:
+            return ''
     return res if res is not None else utfc_res
 
 def convert_string(s, font_name, stats):
