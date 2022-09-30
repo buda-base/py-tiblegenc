@@ -16,7 +16,10 @@ REGION = [120,0,950,100000]
 def deduffed_txt_from_pdf(pdf_file_name, region=None, page_break_str="\n\n-- page {} --\n\n"):
     stats = {
         "unhandled_fonts": {},
-        "unknown_characters": {}
+        "handled_fonts": {},
+        "unknown_characters": {},
+        "error_characters": 0,
+        "diffs_with_utfc": {}
     }
     output_string = StringIO()
     with open(pdf_file_name, 'rb') as in_file:

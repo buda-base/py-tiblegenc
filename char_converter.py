@@ -2,6 +2,7 @@ import csv
 import logging
 
 BASE = None
+UTFC_BASE = None
 ERROR_CHR = "༠༠༠༠"
 DEBUGMODE = True
 
@@ -9,14 +10,26 @@ def get_base():
     global BASE
     if BASE is not None:
         return BASE
-    with open('font_data.csv', newline='') as csvfile:
-        BASE = {}
+    BASE = get_base_from_file('font_data.csv')
+    return BASE
+
+def get_utfc_base():
+    global UTFC_BASE
+    if UTFC_BASE is not None:
+        return UTFC_BASE
+    UTFC_BASE = get_base_from_file('utfc-font-data.csv')
+    return UTFC_BASE
+
+def get_base_from_file(filename):
+    base = {}
+    with open(filename, newline='') as csvfile:
+        base = {}
         reader = csv.reader(csvfile, quotechar='"')
         for row in reader:
-            if row[0] not in BASE:
-                BASE[row[0]] = {}
-            BASE[row[0]][chr(int(row[1]))] = row[2]
-    return BASE
+            if row[0] not in base:
+                base[row[0]] = {}
+            base[row[0]][chr(int(row[1]))] = row[2]
+    return base
 
 FONT_ALIASES = {
     "Dedris-syma": "Ededris-sym",
@@ -35,9 +48,12 @@ def uni_char_from_encoding(nonunicp, encoding="cp1252"):
 
 def _convert_char(char, font_name, stats):
     base = get_base()
+    utfc_base = get_utfc_base()
     if char == "\u00a0":
         char = " "
-    if char not in base[font_name]:
+    base_ft = base.get(font_name)
+    utfc_base_ft = utfc_base.get(font_name)
+    if (base_ft is None or char not in base_ft) and (utfc_base_ft is None or char not in utfc_base_ft):
         if font_name not in stats["unknown_characters"]:
             stats["unknown_characters"][font_name] = {}
         if char not in stats["unknown_characters"][font_name]:
@@ -49,10 +65,21 @@ def _convert_char(char, font_name, stats):
             return "[[%s]]" % (char)
         else:
             return ""
-    res = base[font_name][char]
+    res = base_ft.get(char) if base_ft is not None else None
+    utfc_res = utfc_base_ft.get(char) if utfc_base_ft is not None else None
+    if res is not None and utfc_res is not None and res != utfc_res:
+        stats_key = "%s,%d" % (font_name, ord(char))
+        if stats_key not in stats["diffs_with_utfc"]:
+            stats["diffs_with_utfc"][stats_key] = 0
+        stats["diffs_with_utfc"][stats_key] += 1
+        if DEBUGMODE:
+            return "[[%s,%d,%s or %s]]" % (font_name, ord(char), res, utfc_res)
+        else:
+            return res
     if res == ERROR_CHR:
+        stats["error_characters"] += 1
         return ''
-    return res
+    return res if res is not None else utfc_res
 
 def convert_string(s, font_name, stats):
     if font_name in FONT_ALIASES:
@@ -62,12 +89,16 @@ def convert_string(s, font_name, stats):
     if font_name.startswith("Sam") and len(font_name) == 4:
         font_name = "Es"+font_name[1:]
     base = get_base()
-    if font_name not in base:
+    utfc_base = get_utfc_base()
+    if font_name not in base and font_name not in utfc_base:
         if font_name not in stats["unhandled_fonts"]:
             stats["unhandled_fonts"][font_name] = 0
         stats["unhandled_fonts"][font_name] += 1
         return None
+    if font_name not in stats["handled_fonts"]:
+        stats["handled_fonts"][font_name] = 0
+    stats["handled_fonts"][font_name] += 1
     res = ''
-    for char in s:
+    for char in s:  
         res += _convert_char(char, font_name, stats)
     return res
