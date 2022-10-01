@@ -1,4 +1,4 @@
-# PyDeDuff
+# Python Tibetan Legacy Encodings tool
 
 Python script to convert PDFs using non-Unicode Tibetan fonts in Unicode text.
 
