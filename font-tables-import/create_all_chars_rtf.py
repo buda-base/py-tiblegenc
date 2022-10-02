@@ -1,17 +1,35 @@
+CHARSETNUM = 0
+# see https://learn.microsoft.com/en-us/previous-versions/cc194829(v=msdn.10)?redirectedfrom=MSDN
+# 0 is code page 1252 (ANSI)
+# 2 is SYMBOL_CHARSET (not sure what this is)
+# RTF files in Tibetan sometimes use \fcharset2, I don't know what the implications are
+
+def non_uni_cp_to_uni_cp(nonunicp, encoding="cp1252"):
+    noncpbytes = nonunicp.to_bytes(1, "big")
+    try:
+        unistr = noncpbytes.decode("cp1252")
+        return ord(unistr)
+    except UnicodeDecodeError:
+        return None
+
 def create_rtf(font_list, fname):
 	with open(fname, "wb") as f:
-		f.write(b"{\\rtf1\\ansi \\deff69\\deflang1033 {\\fonttbl{\\f2\\fnil\\fcharset2\\fprq2 Some font;}")
+		f.write(b"{\\rtf1\\ansi \\deff69\\deflang1033 {\\fonttbl{\\f2\\fnil\\fcharset0\\fprq2 Some font;}")
 		fontidx = 100
 		fontname_to_font_idx = {}
 		for fontname, fontinfo in font_list.items():
-			f.write(("{\\f%d\\fnil\\fcharset2\\fprq2 %s;}" % (fontidx, fontname)).encode("utf-8"))
+			f.write(("{\\f%d\\fnil\\fcharset0\\fprq2 %s;}" % (fontidx, fontname)).encode("utf-8"))
 			fontname_to_font_idx[fontname] = fontidx
 			fontidx += 1
 		f.write(b"}\n")
 		for fontname, fontinfo in font_list.items():
 			fontidx = fontname_to_font_idx[fontname]
 			for i in range(32, fontinfo["maxc"]+1):
-				s = "\\f2\\fs48%s,%d,\\f%d\\fs48\\'%x\\par\n" % (fontname, i, fontidx, i)
+				unicp = non_uni_cp_to_uni_cp(i)
+				if unicp is None:
+					print("no uni cp for %d" % i)
+					continue
+				s = "\\f2\\fs48%s,%d,\\f%d\\fs48\\'%x\\par\n" % (fontname, unicp, fontidx, i)
 				f.write(s.encode("utf-8"))
 		f.write(b"}")
 
