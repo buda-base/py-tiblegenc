@@ -10,14 +10,14 @@ def get_base():
     global BASE
     if BASE is not None:
         return BASE
-    BASE = get_base_from_file('font_data.csv')
+    BASE = get_base_from_file('font-tables/tiblegenc.csv')
     return BASE
 
 def get_utfc_base():
     global UTFC_BASE
     if UTFC_BASE is not None:
         return UTFC_BASE
-    UTFC_BASE = get_base_from_file('utfc-font-data.csv')
+    UTFC_BASE = get_base_from_file('font-tables/utfc.csv')
     return UTFC_BASE
 
 def get_base_from_file(filename):
@@ -89,6 +89,7 @@ def convert_string(s, font_name, stats):
         font_name = FONT_ALIASES[font_name]
     if font_name.startswith("Dedris"):
         font_name = "Ed"+font_name[1:]
+    # Todo: also replace "Drutsa-" and "Khamdris-" to "Ededris-"
     if font_name.startswith("Sam") and len(font_name) == 4:
         font_name = "Es"+font_name[1:]
     base = get_base()
