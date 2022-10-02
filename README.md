@@ -52,3 +52,5 @@ The Tibetan Machine Web fonts have two different encodings:
 - the second is the most common one and the only one handled by this code
 
 They can be differenciated by looking at the encoding of the tsheg: if it corresponds to the ANSI hyphen (0x2D, decimal 45) it's the second encoding, else it's the first one.
+
+We want to thank Leigh Brasington for this information.
