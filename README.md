@@ -10,6 +10,15 @@ If you have PDFs you would like to convert in the best quality, please send it t
 
 The code has a `region` argument that specified PDF coordinates of the text to convert on each page; use it to remove headers, footer and marginal content.
 
+### Acknowledgement
+
+We want to thank:
+- Daniel Coppo for the initial inspiration in 2010
+- the Padmakara Translation Committee for the review of the TibetanChogyal tables
+- Leigh Brasington for the UDP software and his precious help on improving the data
+- the Trace Foundation, Tashi Tsering and Nyima Droma for the UTFC software
+- the PechaMaker group for the ATTU software
+
 ### Supported fonts
 
 The supported fonts (combining all the conversion tables) are:
@@ -33,3 +42,13 @@ The supported fonts (combining all the conversion tables) are:
 - DzongkhaCalligraphic (PKTC)
 - TB-Youtso, TB-TTYoutso, TB2-Youtso, TB2-TTYoutso (LTWA)
 - Monlam ouchan and Monlam yigchong
+
+### Caveats
+
+##### First version of the Tibetan Machine Web encoding
+
+The Tibetan Machine Web fonts have two different encodings:
+- the first version was only used for PKTC's plugin to WordPerfect
+- the second is the most common one and the only one handled by this code
+
+They can be differenciated by looking at the encoding of the tsheg: if it corresponds to the ANSI hyphen (0x2D, decimal 45) it's the second encoding, else it's the first one.
