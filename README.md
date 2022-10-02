@@ -15,7 +15,7 @@ The code has a `region` argument that specified PDF coordinates of the text to c
 We want to thank:
 - Daniel Coppo for the initial inspiration in 2010
 - the Padmakara Translation Committee for the review of the TibetanChogyal tables
-- Leigh Brasington for the UDP software and his precious help on improving the data
+- Leigh Brasington for the UDP software, his authorization to use the data from UDP and his precious help
 - the Trace Foundation, Tashi Tsering and Nyima Droma for the UTFC software
 - the PechaMaker group for the ATTU software
 
