@@ -271,6 +271,10 @@ font_list_udp = {
 	"Monlam ouchan 3": {"maxc": 255},
 	"Monlam ouchan 4": {"maxc": 255},
 	"Monlam yigchong": {"maxc": 255},
+	"Monlam Tigmachoug 2": {"maxc": 255},
+	"Monlam Tigmachoug 2": {"maxc": 255},
+	"Monlam PeyTig": {"maxc": 255},
+	"Monlam Dutsa 1": {"maxc": 255},
 	"TibetanCalligraphic": {"maxc": 255},
 	"TibetanCalligraphicSkt1": {"maxc": 255},
 	"TibetanCalligraphicSkt2": {"maxc": 255},
@@ -305,14 +309,9 @@ font_list_udp = {
 	"TibetanMachineWeb7": {"maxc": 127},
 	"TibetanMachineWeb8": {"maxc": 127},
 	"TibetanMachineWeb9": {"maxc": 127},
-	# not present:
-	#"TibetanMachineSkt1": {"maxc": 255},
-	#"TibetanMachineSkt2": {"maxc": 255},
-	#"TibetanMachineSkt3": {"maxc": 255},
-	#"TibetanMachineSkt4": {"maxc": 255},
-	#"TibetanMachine": {"maxc": 255},
-	# Tibetan Modern ?
-	# Tibetan Machine D ?
+	"TibetanMachine-Normal": {"maxc": 255},
+	"TibetanMachineD": {"maxc": 255},
+	"Tibetan-ModernA": {"maxc": 255},
 }
 
 create_rtf(font_list_attu, "allchars-attu.rtf")

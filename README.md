@@ -17,7 +17,7 @@ We want to thank:
 - the Padmakara Translation Committee for the review of the TibetanChogyal tables
 - Leigh Brasington for the UDP software, his authorization to use the data from UDP and his precious help
 - the Trace Foundation, Tashi Tsering and Nyima Droma for the UTFC software
-- the PechaMaker group for the ATTU software
+- Frederick Johnson for the ATTU software
 
 ### Supported fonts
 
