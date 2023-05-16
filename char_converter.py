@@ -85,6 +85,8 @@ def _convert_char(char, font_name, stats):
     return res if res is not None else utfc_res
 
 def convert_string(s, font_name, stats):
+    if s.startswith("(cid:"):
+        return ""
     if font_name in FONT_ALIASES:
         font_name = FONT_ALIASES[font_name]
     if font_name.startswith("Dedris"):
@@ -103,6 +105,7 @@ def convert_string(s, font_name, stats):
         stats["handled_fonts"][font_name] = 0
     stats["handled_fonts"][font_name] += 1
     res = ''
-    for char in s:  
+    for char in s:
         res += _convert_char(char, font_name, stats)
+    #logging.error("converted %s:%s -> %s" % (font_name, s, res))
     return res

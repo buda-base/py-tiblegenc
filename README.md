@@ -12,6 +12,12 @@ If you have PDFs you would like to convert in the best quality, please send it t
 
 The code has a `region` argument that specified PDF coordinates of the text to convert on each page; use it to remove headers, footer and marginal content.
 
+### Installation
+
+```
+pip install pdfminer.six
+```
+
 ### Acknowledgement
 
 We want to thank:
