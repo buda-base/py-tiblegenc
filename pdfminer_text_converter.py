@@ -52,17 +52,21 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         laparams: Optional[LAParams] = USUAL_LA_PARAMS,
         imagewriter = None,
         region = None,
+        maxlines = 100,
+        remove_non_hz=True,
         pbs = "\n\n-- page {} --\n\n",
     ) -> None:
         super().__init__(rsrcmgr, outfp, codec=codec, pageno=pageno, laparams=laparams)
         self.imagewriter = imagewriter
         self.region = region
         self.stats = stats
-        if region:
+        self.maxlines = maxlines
+        if region and len(region) == 4:
             # adding x2 and y2
             self.region.append(region[0]+region[2])
             self.region.append(region[1]+region[3])
         self.pbs = pbs
+        self.remove_non_hz = remove_non_hz
 
     def in_region(self, item, ltpage):
         if not self.region or not hasattr(item, "x0"):
@@ -77,6 +81,11 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
                 return False
         return True
 
+    def is_rotated(self, item):
+        if not item.matrix:
+            return False
+        return item.matrix[1] != 0.0 or item.matrix[2] != 0.0
+
     def convert_item(self, item, ltpage) -> None:
         text = item.get_text()
         if not hasattr(item, "fontname"):
@@ -86,6 +95,12 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
             if hasattr(item, "x0"):
                logging.debug("x0: %f, x1: %f, y0: %f, y1: %f, in_region=False" % (item.x0, item.x1, item.y0, item.y1))
             return
+        if self.remove_non_hz and self.is_rotated(item):
+            logging.debug("matrix: %s is_rotated=True", item.matrix)
+            self.stats["nb_non_horizontal_removed"] += 1
+            return
+        #logging.error("x0: %f, x1: %f, y0: %f, y1: %f, in_region=True %s" % (item.x0, item.x1, item.y0, item.y1, item))
+        #logging.error(ltpage.y1)
         fontname = item.fontname
         fontname = fontname[fontname.find('+')+1:]
         ctext = convert_string(text, fontname, self.stats)
@@ -101,19 +116,21 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
             cast(TextIO, self.outfp).write(text)
 
     def receive_layout(self, ltpage: LTPage) -> None:
-        def render(item: LTItem) -> None:
+        def render(item: LTItem, linenumref) -> None:
             if isinstance(item, LTContainer):
                 for child in item:
-                    render(child)
+                    render(child, linenumref)
             elif isinstance(item, LTText):
-                self.convert_item(item, ltpage)
+                if linenumref["linenum"] <= self.maxlines:
+                    self.convert_item(item, ltpage)
             if isinstance(item, LTTextBox):
                 self.write_text("\n")
+                linenumref["linenum"] += 1
             elif isinstance(item, LTImage):
                 if self.imagewriter is not None:
                     self.imagewriter.export_image(item)
         self.write_text(self.pbs.format(ltpage.pageid))
-        render(ltpage)
+        render(ltpage, {"linenum": 1})
 
     # Some dummy functions to save memory/CPU when all that is wanted
     # is text.  This stops all the image and drawing output from being
