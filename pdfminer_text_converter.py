@@ -69,16 +69,19 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         self.remove_non_hz = remove_non_hz
 
     def in_region(self, item, ltpage):
-        if not self.region or not hasattr(item, "x0"):
+        if not hasattr(item, "x0"):
+            return True
+        if hasattr(ltpage, "x0"):
+            if item.x0 < ltpage.x0 or item.x1 > ltpage.x1 or item.y0 < ltpage.y0 or item.y1 > ltpage.y1:
+                return False
+        if self.region is None:
             return True
         if item.x0 < self.region[0] or item.y0 < self.region[1]:
             return False
         if item.x1 > self.region[4] or item.y1 > self.region[5]:
             return False
         # remove if you also want to convert invisible characters
-        if hasattr(ltpage, "x0"):
-            if item.x0 < ltpage.x0 or item.x1 > ltpage.x1 or item.y0 < ltpage.y0 or item.y1 > ltpage.y1:
-                return False
+        
         return True
 
     def is_rotated(self, item):
@@ -92,16 +95,17 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
             self.write_text(text)
             return
         if not self.in_region(item, ltpage):
-            if hasattr(item, "x0"):
-               logging.debug("x0: %f, x1: %f, y0: %f, y1: %f, in_region=False" % (item.x0, item.x1, item.y0, item.y1))
+            #if hasattr(item, "x0"):
+            #   logging.error("x0: %f, x1: %f, y0: %f, y1: %f, in_region=False" % (item.x0, item.x1, item.y0, item.y1))
             return
         if self.remove_non_hz and self.is_rotated(item):
             logging.debug("matrix: %s is_rotated=True", item.matrix)
             self.stats["nb_non_horizontal_removed"] += 1
             return
         #logging.error("x0: %f, x1: %f, y0: %f, y1: %f, in_region=True %s" % (item.x0, item.x1, item.y0, item.y1, item))
-        #logging.error(ltpage.y1)
+        #logging.error(ltpage)
         fontname = item.fontname
+        #logging.error(item.graphicstate)
         fontname = fontname[fontname.find('+')+1:]
         ctext = convert_string(text, fontname, self.stats)
         if ctext is not None:
