@@ -22,7 +22,7 @@ def get_utfc_base():
 
 def get_base_from_file(filename):
     base = {}
-    with open(filename, newline='') as csvfile:
+    with open(filename, newline='', encoding="utf-8") as csvfile:
         base = {}
         reader = csv.reader(csvfile, quotechar='"')
         for row in reader:

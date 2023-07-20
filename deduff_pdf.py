@@ -87,7 +87,7 @@ def deduff_folder(input_folder="input/", output_folder="output/", region=None, p
         txt = deduffed_txt_from_pdf(path, region, page_break_str)
         txt_path = Path(output_folder) / Path(str(path.stem) + ".txt")
         print(txt_path)
-        with open(txt_path, "w") as f:
+        with open(txt_path, "w", encoding="utf-8") as f:
             f.write(txt)
         #break
 
