@@ -2019,7 +2019,7 @@ Ededris-d1,113,ནྲུ
 Ededris-d1,114,ནླུ
 Ededris-d1,115,ནྴུ
 Ededris-d1,116,ནྶུ
-Ededris-d1,117,ནྷུ
+Ededris-d1,117,ནྫུ
 Ededris-d1,118,ནྔུ
 Ededris-d1,119,ུ
 Ededris-d1,120,ུ
@@ -2116,7 +2116,7 @@ Ededris-d2,121,ཱ
 Ededris-d2,122,ཱ
 Ededris-d2,123,ཱ
 Ededris-d2,124,་ཱ
-Ededris-d2,125,ནྷུ
+Ededris-d2,125,ནྷཱ
 Ededris-d3,33,ཊྥཱུ
 Ededris-d3,35,ཊྤྷཱུ
 Ededris-d3,36,ཊྨཱུ
@@ -3441,8 +3441,8 @@ Ededris-vowa,96,་
 Ededris-sym,32," "
 Ededris-sym,123,(
 Ededris-sym,125,)
-Ededris-sym,91,(
-Ededris-sym,93,)
+Ededris-sym,91,༼
+Ededris-sym,93,༽
 TibetanChogyal,32," "
 TibetanChogyal,33,ཀ
 TibetanChogyal,34,ཁ

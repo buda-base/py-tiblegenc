@@ -58,15 +58,29 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
     ) -> None:
         super().__init__(rsrcmgr, outfp, codec=codec, pageno=pageno, laparams=laparams)
         self.imagewriter = imagewriter
-        self.region = region
+        if region and len(region) == 4:
+            self.region = [region[0], region[1], region[0]+region[2], region[1]+region[3]]
+        else:
+            self.region = None
         self.stats = stats
         self.maxlines = maxlines
-        if region and len(region) == 4:
-            # adding x2 and y2
-            self.region.append(region[0]+region[2])
-            self.region.append(region[1]+region[3])
         self.pbs = pbs
         self.remove_non_hz = remove_non_hz
+
+    def scale_region_box(self, region_box, ltpage):
+        if not hasattr(ltpage, "x0"):
+            return self.region_box
+        res = []
+        ltpage_w = ltpage.x1 - ltpage.x0
+        ltpage_h = ltpage.y1 - ltpage.y0
+        for i, c in enumerate(self.region):
+            if c > 0 and c < 1:
+                if i < 2:
+                    c = int(c * ltpage_h) + ltpage.y0
+                else:
+                    c = int(c * ltpage_w) + ltpage.x0 
+            res.append(c)
+        return res
 
     def in_region(self, item, ltpage):
         if not hasattr(item, "x0"):
@@ -76,9 +90,11 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
                 return False
         if self.region is None:
             return True
-        if item.x0 < self.region[0] or item.y0 < self.region[1]:
+        # if region coordinates are floats between 0 and 1, we scale them with the ltpage coordinates:
+        region_box = self.scale_region_box(ltpage)
+        if item.x0 < region_box[0] or item.y0 < region_box[1]:
             return False
-        if item.x1 > self.region[4] or item.y1 > self.region[5]:
+        if item.x1 > region_box[2] or item.y1 > region_box[3]:
             return False
         # remove if you also want to convert invisible characters
         
