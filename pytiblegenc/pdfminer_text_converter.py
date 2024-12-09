@@ -21,8 +21,11 @@ from pdfminer.layout import LTTextBox
 from pdfminer.layout import LTTextBoxVertical
 from pdfminer.layout import LTTextGroup
 from pdfminer.layout import LTTextLine
+from pdfminer.converter import PDFLayoutAnalyzer
 from pdfminer.utils import AnyIO, Point, Matrix, Rect, PathSegment, make_compat_str, compatible_encode_method
-from char_converter import convert_string
+from pdfminer.utils import apply_matrix_pt
+
+from .char_converter import convert_string
 import logging
 
 from typing import (
@@ -40,6 +43,38 @@ from typing import (
 )
 
 USUAL_LA_PARAMS = LAParams(word_margin=10000, char_margin=1000)
+
+# see https://github.com/pdfminer/pdfminer.six/issues/900
+# for some reason pdfminer uses the mediabox coordinates for LTPage
+# but it seems that cropbox is a better choice. This hack does this:
+
+def cropbox_begin_page(self, page, ctm):
+    (x0, y0, x1, y1) = page.cropbox
+    (x0, y0) = apply_matrix_pt(ctm, (x0, y0))
+    (x1, y1) = apply_matrix_pt(ctm, (x1, y1))
+    mediabox = (0, 0, abs(x0 - x1), abs(y0 - y1))
+    self.cur_item = LTPage(self.pageno, mediabox)
+
+def cropbox_process_page(self, page: PDFPage) -> None:
+    #log.debug("Processing page: %r", page)
+    (x0, y0, x1, y1) = page.cropbox
+    #print(page.cropbox)
+    #print(page.rotate)
+    if page.rotate == 90:
+        ctm = (0, -1, 1, 0, -y0, x1)
+    elif page.rotate == 180:
+        ctm = (-1, 0, 0, -1, x1, y1)
+    elif page.rotate == 270:
+        ctm = (0, 1, -1, 0, y1, -x0)
+    else:
+        ctm = (1, 0, 0, 1, -x0, -y0)
+    self.device.begin_page(page, ctm)
+    self.render_contents(page.resources, page.contents, ctm=ctm)
+    self.device.end_page(page)
+    return
+
+PDFLayoutAnalyzer.begin_page = cropbox_begin_page
+PDFPageInterpreter.process_page = cropbox_process_page
 
 class DuffedTextConverter(PDFConverter[AnyIO]):
     def __init__(

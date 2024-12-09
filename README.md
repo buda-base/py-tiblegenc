@@ -62,3 +62,7 @@ The Tibetan Machine Web fonts have two different encodings:
 They can be differenciated by looking at the encoding of the tsheg: if it corresponds to the ANSI hyphen (0x2D, decimal 45) it's the second encoding, else it's the first one.
 
 We want to thank Leigh Brasington for this information.
+
+### TODO
+
+藏研乌金体 seems to be a synonym for 藏研乌坚体 (CTRC-Uchen)

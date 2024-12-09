@@ -1,5 +1,6 @@
 import csv
 import logging
+import os
 
 BASE = None
 UTFC_BASE = None
@@ -10,20 +11,20 @@ def get_base():
     global BASE
     if BASE is not None:
         return BASE
-    BASE = get_base_from_file('font-tables/tiblegenc.csv')
+    BASE = get_base_from_file('tiblegenc.csv')
     return BASE
 
 def get_utfc_base():
     global UTFC_BASE
     if UTFC_BASE is not None:
         return UTFC_BASE
-    UTFC_BASE = get_base_from_file('font-tables/utfc.csv')
+    UTFC_BASE = get_base_from_file('utfc.csv')
     return UTFC_BASE
 
 def get_base_from_file(filename):
     base = {}
-    with open(filename, newline='', encoding="utf-8") as csvfile:
-        base = {}
+    path = os.path.join(os.path.split(__file__)[0], 'font-tables', filename)
+    with open(str(path), newline='', encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile, quotechar='"')
         for row in reader:
             if row[0] not in base:
