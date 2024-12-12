@@ -58,8 +58,6 @@ def cropbox_begin_page(self, page, ctm):
 def cropbox_process_page(self, page: PDFPage) -> None:
     #log.debug("Processing page: %r", page)
     (x0, y0, x1, y1) = page.cropbox
-    #print(page.cropbox)
-    #print(page.rotate)
     if page.rotate == 90:
         ctm = (0, -1, 1, 0, -y0, x1)
     elif page.rotate == 180:
@@ -71,7 +69,6 @@ def cropbox_process_page(self, page: PDFPage) -> None:
     self.device.begin_page(page, ctm)
     self.render_contents(page.resources, page.contents, ctm=ctm)
     self.device.end_page(page)
-    return
 
 PDFLayoutAnalyzer.begin_page = cropbox_begin_page
 PDFPageInterpreter.process_page = cropbox_process_page
@@ -102,19 +99,20 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         self.pbs = pbs
         self.remove_non_hz = remove_non_hz
 
-    def scale_region_box(self, region_box, ltpage):
+    def scale_region_box(self, ltpage):
         if not hasattr(ltpage, "x0"):
-            return self.region_box
+            return self.region
         res = []
         ltpage_w = ltpage.x1 - ltpage.x0
         ltpage_h = ltpage.y1 - ltpage.y0
         for i, c in enumerate(self.region):
             if c > 0 and c < 1:
-                if i < 2:
-                    c = int(c * ltpage_h) + ltpage.y0
-                else:
+                if i % 2 == 0:
                     c = int(c * ltpage_w) + ltpage.x0 
+                else:
+                    c = int(c * ltpage_h) + ltpage.y0
             res.append(c)
+        # print("scale %s to %s" % (self.region, res))
         return res
 
     def in_region(self, item, ltpage):
@@ -150,7 +148,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
             #   logging.error("x0: %f, x1: %f, y0: %f, y1: %f, in_region=False" % (item.x0, item.x1, item.y0, item.y1))
             return
         if self.remove_non_hz and self.is_rotated(item):
-            logging.debug("matrix: %s is_rotated=True", item.matrix)
+            #logging.debug("matrix: %s is_rotated=True", item.matrix)
             self.stats["nb_non_horizontal_removed"] += 1
             return
         #logging.error("x0: %f, x1: %f, y0: %f, y1: %f, in_region=True %s" % (item.x0, item.x1, item.y0, item.y1, item))
