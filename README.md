@@ -66,3 +66,28 @@ We want to thank Leigh Brasington for this information.
 ### TODO
 
 藏研乌金体 seems to be a synonym for 藏研乌坚体 (CTRC-Uchen)
+
+
+### Additional information
+
+From correspondence with Robert Chilton:
+
+> Back during my time working to convert Tibetan documents from
+> non-Unicode to Unicode, I helped create a converter called Unicode
+> Converter Version 1.04 for the Dzongkha Development Commission (DDC) in
+> Bhutan.  One of the conversion engines was the Unicode Document
+> Processor (UDP) program; still available at
+> https://leighb.com/udp/index.html.  That site mentions which formats and
+> non-Unicode fonts can be used in the source documents for conversion at
+> https://leighb.com/udp/convert.htm.  It seems likely that there are (or
+> were) a substantial number of Tibetan documents created using most of
+> the fonts supported by UDP.
+> 
+> In addition to the legacy fonts/formats mentioned on the UDP site, the
+> DDC converter also handles documents containing the following
+> pre-Unicode fonts:
+> CDAC / Gist ISM
+> Druk98
+> Jamyang - Pem Tshewang
+> Jamyang - DBu-can
+> Jamyang - Gelong Rinchen
