@@ -5,7 +5,7 @@ import os
 BASE = None
 UTFC_BASE = None
 ERROR_CHR = "༠༠༠༠"
-DEBUGMODE = False
+DEBUGMODE = True
 
 def get_base():
     global BASE
@@ -27,14 +27,17 @@ def get_base_from_file(filename):
     with open(str(path), newline='', encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile, quotechar='"')
         for row in reader:
+            if len(row) < 3 or not row[2]:
+                continue
             if row[0] not in base:
                 base[row[0]] = {}
             unicp = int(row[1])
             if unicp < 256:
                 unicpfromcp1252 = uni_char_from_encoding(unicp)
+                #print(unicpfromcp1252)
                 if unicpfromcp1252:
-                    if chr(unicpfromcp1252) not in base[row[0]]:
-                        base[row[0]][chr(unicpfromcp1252)] = row[2]            
+                    if chr(ord(unicpfromcp1252)) not in base[row[0]]:
+                        base[row[0]][chr(ord(unicpfromcp1252))] = row[2]            
             base[row[0]][chr(unicp)] = row[2]
     return base
 
@@ -50,7 +53,9 @@ def uni_char_from_encoding(nonunicp, encoding="cp1252"):
     try:
         unistr = noncpbytes.decode("cp1252")
         logging.debug("decoding %d (%s) into %s (%d)" % (nonunicp, noncpbytes.hex(), unistr, ord(unistr)))
+        return unistr
     except UnicodeDecodeError:
+        #logging.warn(f"couldn't decode {nonunicp}")
         return
 
 def _convert_char(char, font_name, stats=None):
@@ -73,7 +78,7 @@ def _convert_char(char, font_name, stats=None):
         #logging.error("unknown character: '%s' (%d) in %s" % (char, ord(char), font_name))
         if DEBUGMODE:
             #return "%s,%d,?(%s)" % (font_name, ord(char), char)
-            return "[[%s%s]]" % (font_name, char)
+            return "[[%s,%s]]" % (font_name, char)
         else:
             return ""
     res = base_ft.get(char) if base_ft is not None else None
@@ -102,6 +107,8 @@ def _convert_byte(b, font_name, stats=None):
     b is expected to be a number between 0 and 255
     """
     unic = uni_char_from_encoding(b)
+    if unic is None:
+        unic = chr(b)
     return _convert_char(unic, font_name, stats)
 
 def normalize_font_name(font_name, weight=None):
