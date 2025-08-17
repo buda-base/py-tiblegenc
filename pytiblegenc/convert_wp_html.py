@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 # convert_wp_html.py
 """
-Convert WP-style HTML:
+Convert HTML exported by libwpd:
 - Build class → font map from <style> blocks (font-family + bold/italic).
 - Replace h[XX] byte sequences in body using char_converter._convert_byte().
   * If the byte < 0x20 (control code), ignore it (do not convert; drop it).
 - Strip font-family/font-style/font-weight from CSS.
 - In the <body>, remove regular space characters U+0020 from text content.
   * Do NOT modify &nbsp; or numeric char refs (e.g., &#160;). Keep them as-is.
+
+
+
+To produce the export from WordPerfect to html you need a modified version of the wpd2html tool.
+
+Just modify it with the following patch:
+
+https://github.com/eroux/libwpd/commit/1df86cce9140128dcd33394c7765cc5149e579bc
 """
 
 import argparse
