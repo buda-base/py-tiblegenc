@@ -18,9 +18,58 @@ The code has a `region` argument that specified PDF coordinates of the text to c
 pip install pdfminer.six fonttools
 ```
 
-### Font Identification and Ambiguity Detection
+### Font Identification and Normalization
 
-The library can identify fonts in PDF files by comparing their glyph shapes against a database of known fonts. When a font could correspond to multiple font families (ambiguous match), you can enable logging to get detailed information:
+The library includes a bundled database of Tibetan font glyphs and can automatically identify and normalize fonts in PDF files.
+
+#### Basic Usage - Automatic Font Normalization
+
+```python
+from io import StringIO
+from pytiblegenc import (
+    DuffedTextConverter,
+    build_font_hash_index_from_csv,
+    identify_pdf_fonts_from_db,
+    create_font_normalization_map
+)
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.pdfpage import PDFPage
+
+# Identify fonts and create normalization map
+with open('document.pdf', 'rb') as f:
+    parser = PDFParser(f)
+    doc = PDFDocument(parser)
+    glyph_index = build_font_hash_index_from_csv()  # Uses bundled database
+    normalized_fonts = identify_pdf_fonts_from_db(doc, glyph_index)
+    font_map = create_font_normalization_map(normalized_fonts, log_ambiguous=True)
+
+# Convert PDF with font normalization
+stats = {}
+output = StringIO()
+with open('document.pdf', 'rb') as f:
+    parser = PDFParser(f)
+    doc = PDFDocument(parser)
+    rsrcmgr = PDFResourceManager()
+    device = DuffedTextConverter(rsrcmgr, output, stats, font_map=font_map)
+    interpreter = PDFPageInterpreter(rsrcmgr, device)
+    for page in PDFPage.create_pages(doc):
+        interpreter.process_page(page)
+
+text = output.getvalue()
+```
+
+When fonts have ambiguous matches, errors are logged:
+```
+ERROR: Font F9 has ambiguous matches (Dedris-b, Dedris-e). Using Dedris-b for conversion, but results may be incorrect.
+```
+
+See `demo.py` for a complete working example with the `converted_txt_from_pdf()` helper function.
+
+#### Advanced Usage - Font Identification Only
+
+For debugging or analysis, you can identify fonts without converting:
 
 ```python
 import logging
@@ -35,9 +84,9 @@ from pdfminer.pdfdocument import PDFDocument
 # Enable logging to see ambiguity warnings
 logging.basicConfig(level=logging.WARNING)
 
-# Build indices
-glyph_index = build_font_hash_index_from_csv('font_db/glyph_db.csv')
-detailed_index = build_detailed_glyph_index_from_csv('font_db/glyph_db.csv')
+# Build indices (uses bundled database by default)
+glyph_index = build_font_hash_index_from_csv()
+detailed_index = build_detailed_glyph_index_from_csv()
 
 # Identify fonts with ambiguity logging
 with open('document.pdf', 'rb') as f:
