@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Iterable, Union
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdftypes import resolve1, stream_value
+from pdfminer.psparser import PSLiteral
 
 from fontTools.ttLib import TTFont, TTLibError
 
@@ -402,9 +403,16 @@ def identify_pdf_fonts_from_db(doc, font_hash_index: Dict[str, Set[str]]) -> Dic
                 continue
 
             basefont = font_obj.get("BaseFont")
-            basefont_name = str(basefont) if basefont is not None else None
-            if basefont_name and basefont_name.startswith("/"):
-                basefont_name = basefont_name[1:]
+            # Handle PSLiteral objects properly - extract the .name attribute
+            if basefont is not None:
+                if isinstance(basefont, PSLiteral):
+                    basefont_name = basefont.name
+                else:
+                    basefont_name = str(basefont)
+                    if basefont_name.startswith("/"):
+                        basefont_name = basefont_name[1:]
+            else:
+                basefont_name = None
 
             # ------------------------------------------------------------------
             # FAST PATH: try to infer original font from subset BaseFont name.
@@ -429,7 +437,21 @@ def identify_pdf_fonts_from_db(doc, font_hash_index: Dict[str, Set[str]]) -> Dic
             # ------------------------------------------------------------------
             # SLOW PATH: use embedded font bytes + identify_font()
             # ------------------------------------------------------------------
+            # For Type0 (CIDFonts), the FontDescriptor is in DescendantFonts
             font_desc = resolve1(font_obj.get("FontDescriptor"))
+            
+            # If no direct FontDescriptor, check DescendantFonts (Type0/CIDFont)
+            if not font_desc or not isinstance(font_desc, dict):
+                descendant_fonts = resolve1(font_obj.get("DescendantFonts"))
+                if descendant_fonts:
+                    # DescendantFonts is typically an array with one element
+                    for df in descendant_fonts:
+                        df_obj = resolve1(df)
+                        if isinstance(df_obj, dict):
+                            font_desc = resolve1(df_obj.get("FontDescriptor"))
+                            if font_desc and isinstance(font_desc, dict):
+                                break
+            
             if not isinstance(font_desc, dict):
                 continue
 
