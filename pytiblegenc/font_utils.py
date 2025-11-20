@@ -42,6 +42,29 @@ from fontTools.ttLib import TTFont, TTLibError
 
 
 # ---------------------------------------------------------------------------
+# Hardcoded path to glyph_db.csv in the installed package
+# ---------------------------------------------------------------------------
+
+def get_glyph_db_path() -> Path:
+    """
+    Return the path to glyph_db.csv in the installed package.
+    This is hardcoded to work when the package is installed via pip.
+    """
+    return Path(__file__).parent / "glyph_db.csv"
+
+
+def build_font_hash_index() -> Dict[str, Set[str]]:
+    """
+    Convenience function to build the font hash index from the hardcoded glyph_db.csv.
+    This is the recommended way to load the font database.
+    
+    Returns:
+        Dict[font_postscript_name, Set[glyph_hash]]
+    """
+    return build_font_hash_index_from_csv(get_glyph_db_path())
+
+
+# ---------------------------------------------------------------------------
 # Types
 # ---------------------------------------------------------------------------
 
@@ -329,7 +352,7 @@ def identify_font(font_bytes: bytes, font_hash_index: Dict[str, Set[str]]) -> Se
               i.e. fonts whose glyph set is a superset of the subset font.
 
     Typical usage:
-        index = build_font_hash_index_from_csv("glyph_db.csv")
+        index = build_font_hash_index()  # Uses hardcoded glyph_db.csv
         candidates = identify_font(embedded_font_bytes, index)
     """
     ps_name, records = get_glyph_hashes_from_bytes(font_bytes)
@@ -361,7 +384,7 @@ def identify_pdf_fonts_from_db(doc, font_hash_index: Dict[str, Set[str]]) -> Dic
     Args:
         doc: pdfminer.pdfdocument.PDFDocument
         font_hash_index: Dict[postscript_name, Set[glyph_hash]]
-            Usually built with build_font_hash_index_from_csv("glyph_db.csv").
+            Usually built with build_font_hash_index() which uses the hardcoded glyph_db.csv.
 
     Returns:
         Dict[str, Set[str]]
