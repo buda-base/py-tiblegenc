@@ -62,13 +62,33 @@ def convert_folder(input_folder="input/", output_folder="output/", region=None, 
         except ValueError:
             print("couldn't open %s" % path)
 
-def identify_fonts_in_pdf(pdf_file_path, glyph_db_path="font_db/glyph_db.csv"):
+def identify_fonts_in_pdf(pdf_file_path, glyph_db_path="font_db/glyph_db.csv", log_ambiguous=False):
+    """
+    Identify fonts in a PDF file.
+    
+    Args:
+        pdf_file_path: Path to the PDF file
+        glyph_db_path: Path to the glyph database CSV
+        log_ambiguous: If True, log warnings when fonts have multiple candidates
+    """
+    from pytiblegenc import build_detailed_glyph_index_from_csv
+    
     glyph_index = build_font_hash_index_from_csv(glyph_db_path)
-    #print(glyph_index)
+    
+    # Build detailed index if ambiguity logging is requested
+    detailed_index = None
+    if log_ambiguous:
+        detailed_index = build_detailed_glyph_index_from_csv(glyph_db_path)
+    
     with open(pdf_file_path, 'rb') as in_file:
         parser = PDFParser(in_file)
         doc = PDFDocument(parser)
-        normalized_fonts = identify_pdf_fonts_from_db(doc, glyph_index)
+        normalized_fonts = identify_pdf_fonts_from_db(
+            doc, 
+            glyph_index,
+            detailed_index=detailed_index,
+            log_ambiguous=log_ambiguous
+        )
         print(normalized_fonts)
 
 # [0,50,1000000,500]
@@ -79,4 +99,6 @@ def identify_fonts_in_pdf(pdf_file_path, glyph_db_path="font_db/glyph_db.csv"):
 #txt = deduffed_txt_from_pdf("input2/Copy of v1.pdf", REGION, "\n\n-- page {} --\n\n")
 #print(txt)
 
-identify_fonts_in_pdf("withoutnames.pdf")
+# Example: identify fonts with ambiguity logging enabled
+logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
+identify_fonts_in_pdf("tests/fontnames/withoutnames.pdf", log_ambiguous=True)
