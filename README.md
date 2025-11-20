@@ -15,7 +15,47 @@ The code has a `region` argument that specified PDF coordinates of the text to c
 ### Installation
 
 ```
-pip install pdfminer.six
+pip install pdfminer.six fonttools
+```
+
+### Font Identification and Ambiguity Detection
+
+The library can identify fonts in PDF files by comparing their glyph shapes against a database of known fonts. When a font could correspond to multiple font families (ambiguous match), you can enable logging to get detailed information:
+
+```python
+import logging
+from pytiblegenc import (
+    build_font_hash_index_from_csv, 
+    build_detailed_glyph_index_from_csv,
+    identify_pdf_fonts_from_db
+)
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfdocument import PDFDocument
+
+# Enable logging to see ambiguity warnings
+logging.basicConfig(level=logging.WARNING)
+
+# Build indices
+glyph_index = build_font_hash_index_from_csv('font_db/glyph_db.csv')
+detailed_index = build_detailed_glyph_index_from_csv('font_db/glyph_db.csv')
+
+# Identify fonts with ambiguity logging
+with open('document.pdf', 'rb') as f:
+    parser = PDFParser(f)
+    doc = PDFDocument(parser)
+    fonts = identify_pdf_fonts_from_db(
+        doc, 
+        glyph_index,
+        detailed_index=detailed_index,
+        log_ambiguous=True  # Enable ambiguity logging
+    )
+```
+
+This will log warnings like:
+```
+WARNING: Font F9 could have multiple correspondences: Dedris-b, Dedris-e
+WARNING:   - Dedris-b: sample characters: three (U+0033, chr='3'), A (U+0041, chr='A'), ...
+WARNING:   - Dedris-e: sample characters: r (U+0072, chr='r'), w (U+0077, chr='w'), ...
 ```
 
 ### Acknowledgement
