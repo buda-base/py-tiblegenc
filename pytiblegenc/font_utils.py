@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import csv
 import io
+import logging
 import shutil
 import subprocess
 import tempfile
@@ -40,6 +41,11 @@ from pdfminer.psparser import PSLiteral
 
 from fontTools.ttLib import TTFont, TTLibError
 
+logger = logging.getLogger(__name__)
+
+# Default path to the glyph database
+_DEFAULT_GLYPH_DB_PATH = Path(__file__).parent / "font_db" / "glyph_db.csv"
+
 
 # ---------------------------------------------------------------------------
 # Types
@@ -47,6 +53,23 @@ from fontTools.ttLib import TTFont, TTLibError
 
 # Each glyph record: (glyph_name, glyph_hash, codepoints)
 GlyphRecord = Tuple[str, str, Tuple[int, ...]]
+
+@dataclass
+class GlyphDetail:
+    """Detailed information about a glyph in a font."""
+    glyph_name: str
+    glyph_hash: str
+    codepoint: Optional[int]
+    
+    def __hash__(self):
+        return hash((self.glyph_name, self.glyph_hash, self.codepoint))
+    
+    def __eq__(self, other):
+        if not isinstance(other, GlyphDetail):
+            return False
+        return (self.glyph_name == other.glyph_name and 
+                self.glyph_hash == other.glyph_hash and 
+                self.codepoint == other.codepoint)
 
 
 # ---------------------------------------------------------------------------
@@ -284,15 +307,20 @@ def get_glyph_hashes_from_bytes(font_bytes: bytes) -> Tuple[str, Set[GlyphRecord
 # DB index helpers (for identification)
 # ---------------------------------------------------------------------------
 
-def build_font_hash_index_from_csv(csv_path: Union[str, Path]) -> Dict[str, Set[str]]:
+def build_font_hash_index_from_csv(csv_path: Optional[Union[str, Path]] = None) -> Dict[str, Set[str]]:
     """
     Build an index from the glyph DB CSV:
 
         font_postscript_name -> set[glyph_hash]
 
+    Args:
+        csv_path: Path to the glyph database CSV. If None, uses the default bundled database.
+
     Assumes CSV columns created by create_db.py:
-        glyph_hash,font_postscript_name,font_file,glyph_name,codepoint,unicode_char,unicode_hex
+        glyph_hash,font_postscript_name,glyph_name,codepoint
     """
+    if csv_path is None:
+        csv_path = _DEFAULT_GLYPH_DB_PATH
     csv_path = Path(csv_path)
     index: Dict[str, Set[str]] = {}
 
@@ -306,6 +334,60 @@ def build_font_hash_index_from_csv(csv_path: Union[str, Path]) -> Dict[str, Set[
                 continue
 
             index.setdefault(ps_name, set()).add(glyph_hash)
+
+    return index
+
+
+def build_detailed_glyph_index_from_csv(csv_path: Optional[Union[str, Path]] = None) -> Dict[str, Dict[str, Set[GlyphDetail]]]:
+    """
+    Build a detailed index from the glyph DB CSV:
+
+        font_postscript_name -> glyph_hash -> set[GlyphDetail]
+
+    Args:
+        csv_path: Path to the glyph database CSV. If None, uses the default bundled database.
+
+    This allows us to get detailed information (glyph names, codepoints) for each 
+    glyph hash in each font, useful for debugging ambiguous font matches.
+
+    Assumes CSV columns:
+        glyph_hash,font_postscript_name,glyph_name,codepoint
+    """
+    if csv_path is None:
+        csv_path = _DEFAULT_GLYPH_DB_PATH
+    csv_path = Path(csv_path)
+    index: Dict[str, Dict[str, Set[GlyphDetail]]] = {}
+
+    with csv_path.open("r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            glyph_hash = row["glyph_hash"]
+            ps_name = row["font_postscript_name"]
+            glyph_name = row["glyph_name"]
+            codepoint_str = row.get("codepoint", "")
+
+            if not glyph_hash or not ps_name:
+                continue
+
+            # Parse codepoint
+            codepoint = None
+            if codepoint_str and codepoint_str != "None":
+                try:
+                    codepoint = int(codepoint_str)
+                except ValueError:
+                    pass
+
+            detail = GlyphDetail(
+                glyph_name=glyph_name,
+                glyph_hash=glyph_hash,
+                codepoint=codepoint
+            )
+
+            if ps_name not in index:
+                index[ps_name] = {}
+            if glyph_hash not in index[ps_name]:
+                index[ps_name][glyph_hash] = set()
+            index[ps_name][glyph_hash].add(detail)
 
     return index
 
@@ -354,7 +436,12 @@ def identify_font(font_bytes: bytes, font_hash_index: Dict[str, Set[str]]) -> Se
     return candidates
 
 
-def identify_pdf_fonts_from_db(doc, font_hash_index: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
+def identify_pdf_fonts_from_db(
+    doc, 
+    font_hash_index: Dict[str, Set[str]], 
+    detailed_index: Optional[Dict[str, Dict[str, Set[GlyphDetail]]]] = None,
+    log_ambiguous: bool = False
+) -> Dict[str, Set[str]]:
     """
     Identify all fonts in a PDF document against a glyph-hash database.
 
@@ -362,6 +449,10 @@ def identify_pdf_fonts_from_db(doc, font_hash_index: Dict[str, Set[str]]) -> Dic
         doc: pdfminer.pdfdocument.PDFDocument
         font_hash_index: Dict[postscript_name, Set[glyph_hash]]
             Usually built with build_font_hash_index_from_csv("glyph_db.csv").
+        detailed_index: Optional detailed index from build_detailed_glyph_index_from_csv()
+            If provided and log_ambiguous is True, used to log detailed information
+            about ambiguous font matches.
+        log_ambiguous: If True, log warnings when fonts have multiple candidates.
 
     Returns:
         Dict[str, Set[str]]
@@ -491,6 +582,17 @@ def identify_pdf_fonts_from_db(doc, font_hash_index: Dict[str, Set[str]]) -> Dic
             if not candidates:
                 continue
 
+            # Log ambiguous matches if requested
+            if log_ambiguous and len(candidates) > 1:
+                _log_ambiguous_font_match(
+                    res_name_str, 
+                    basefont_name,
+                    candidates, 
+                    font_bytes, 
+                    font_hash_index,
+                    detailed_index
+                )
+
             # Map by resource name (e.g. '/F1')
             normalized.setdefault(res_name_str, set()).update(candidates)
 
@@ -498,4 +600,168 @@ def identify_pdf_fonts_from_db(doc, font_hash_index: Dict[str, Set[str]]) -> Dic
             if basefont_name:
                 normalized.setdefault(basefont_name, set()).update(candidates)
 
+    # Log any ambiguities that arose from aggregating multiple font streams under the same resource name
+    if log_ambiguous and detailed_index:
+        for font_name, candidates in normalized.items():
+            if len(candidates) > 1:
+                _log_aggregated_ambiguity(font_name, candidates, detailed_index)
+
     return normalized
+
+
+def _log_aggregated_ambiguity(
+    font_name: str,
+    candidates: Set[str],
+    detailed_index: Dict[str, Dict[str, Set[GlyphDetail]]]
+) -> None:
+    """
+    Log information about a font name that has accumulated multiple candidate fonts.
+    
+    This happens when a PDF resource name (like 'F9') points to different BaseFont names
+    on different pages, and those BaseFonts identify to different font families.
+    """
+    candidates_str = ", ".join(sorted(candidates))
+    logger.warning(
+        f"Font {font_name} could have multiple correspondences: {candidates_str}"
+    )
+    
+    # Show some sample characters from each candidate font
+    for candidate in sorted(candidates):
+        if candidate not in detailed_index:
+            continue
+        
+        sample_chars = []
+        candidate_glyph_details = detailed_index[candidate]
+        
+        # Collect some sample glyphs (limit to first 10)
+        for glyph_hash, details_set in list(candidate_glyph_details.items())[:10]:
+            for detail in details_set:
+                if detail.codepoint is not None:
+                    char_info = f"{detail.glyph_name} (U+{detail.codepoint:04X}, chr={chr(detail.codepoint)!r})"
+                else:
+                    char_info = f"{detail.glyph_name} (no codepoint)"
+                sample_chars.append(char_info)
+                break  # Only take one detail per glyph hash
+            if len(sample_chars) >= 10:
+                break
+        
+        if sample_chars:
+            chars_summary = ", ".join(sample_chars)
+            if len(candidate_glyph_details) > 10:
+                chars_summary += f", ... ({len(candidate_glyph_details) - 10} more glyphs)"
+            
+            logger.warning(
+                f"  - {candidate}: sample characters: {chars_summary}"
+            )
+
+
+def _log_ambiguous_font_match(
+    res_name: str,
+    basefont_name: Optional[str],
+    candidates: Set[str],
+    font_bytes: bytes,
+    font_hash_index: Dict[str, Set[str]],
+    detailed_index: Optional[Dict[str, Dict[str, Set[GlyphDetail]]]]
+) -> None:
+    """
+    Log detailed information about an ambiguous font match.
+    
+    This is called when a single embedded font stream matches multiple candidate fonts.
+    
+    Args:
+        res_name: Resource name like '/F1'
+        basefont_name: BaseFont name if available
+        candidates: Set of candidate font names
+        font_bytes: The embedded font bytes
+        font_hash_index: The hash index for quick lookups
+        detailed_index: Optional detailed index with glyph information
+    """
+    try:
+        ps_name, records = get_glyph_hashes_from_bytes(font_bytes)
+        glyph_hashes_in_font = {rec[1] for rec in records}  # rec[1] is glyph_hash
+        
+        font_label = basefont_name if basefont_name else res_name
+        candidates_str = ", ".join(sorted(candidates))
+        
+        logger.warning(
+            f"Font {font_label} (embedded stream) could have multiple correspondences: {candidates_str}"
+        )
+        
+        if detailed_index:
+            # Build a map of characters that exist in the embedded font
+            embedded_glyphs = {rec[0]: rec for rec in records}  # glyph_name -> full record
+            
+            # For each candidate font, show which characters match
+            for candidate in sorted(candidates):
+                if candidate not in detailed_index:
+                    continue
+                
+                matching_chars = []
+                candidate_glyph_details = detailed_index[candidate]
+                
+                # Find glyphs that are in both the embedded font and the candidate
+                for glyph_hash in glyph_hashes_in_font:
+                    if glyph_hash in candidate_glyph_details:
+                        for detail in candidate_glyph_details[glyph_hash]:
+                            # Format: glyph_name (U+XXXX)
+                            if detail.codepoint is not None:
+                                char_info = f"{detail.glyph_name} (U+{detail.codepoint:04X}, chr={chr(detail.codepoint)!r})"
+                            else:
+                                char_info = f"{detail.glyph_name} (no codepoint)"
+                            matching_chars.append(char_info)
+                
+                if matching_chars:
+                    # Limit the output to first 20 characters to avoid excessive logging
+                    chars_to_show = matching_chars[:20]
+                    if len(matching_chars) > 20:
+                        chars_summary = ", ".join(chars_to_show) + f", ... ({len(matching_chars) - 20} more)"
+                    else:
+                        chars_summary = ", ".join(chars_to_show)
+                    
+                    logger.warning(
+                        f"  - {candidate}: matching characters: {chars_summary}"
+                    )
+    except Exception as e:
+        logger.debug(f"Error logging ambiguous font match: {e}")
+
+
+def create_font_normalization_map(
+    normalized_fonts: Dict[str, Set[str]],
+    log_ambiguous: bool = False
+) -> Dict[str, str]:
+    """
+    Create a font normalization map from the identification results.
+    
+    This map is used to normalize font names during PDF text extraction.
+    For fonts with a single match, maps the PDF font name to the identified font.
+    For fonts with multiple matches, logs an error (if log_ambiguous=True) and uses the first match.
+    
+    Args:
+        normalized_fonts: Result from identify_pdf_fonts_from_db()
+        log_ambiguous: If True, log errors for fonts with multiple matches
+        
+    Returns:
+        Dict mapping PDF font names to normalized font names
+    """
+    font_map: Dict[str, str] = {}
+    
+    for pdf_font_name, candidates in normalized_fonts.items():
+        if len(candidates) == 0:
+            continue
+        elif len(candidates) == 1:
+            # Single match - straightforward mapping
+            font_map[pdf_font_name] = next(iter(candidates))
+        else:
+            # Multiple matches - log error and use first candidate (sorted for consistency)
+            sorted_candidates = sorted(candidates)
+            chosen = sorted_candidates[0]
+            font_map[pdf_font_name] = chosen
+            
+            if log_ambiguous:
+                candidates_str = ", ".join(sorted_candidates)
+                logger.error(
+                    f"Font {pdf_font_name} has ambiguous matches ({candidates_str}). "
+                    f"Using {chosen} for conversion, but results may be incorrect."
+                )
+    
+    return font_map
