@@ -34,6 +34,8 @@ from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Iterable, Union
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdftypes import resolve1, stream_value
 
 from fontTools.ttLib import TTFont, TTLibError
 
@@ -349,3 +351,129 @@ def identify_font(font_bytes: bytes, font_hash_index: Dict[str, Set[str]]) -> Se
             candidates.add(candidate_ps)
 
     return candidates
+
+
+def identify_pdf_fonts_from_db(doc, font_hash_index: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
+    """
+    Identify all fonts in a PDF document against a glyph-hash database.
+
+    Args:
+        doc: pdfminer.pdfdocument.PDFDocument
+        font_hash_index: Dict[postscript_name, Set[glyph_hash]]
+            Usually built with build_font_hash_index_from_csv("glyph_db.csv").
+
+    Returns:
+        Dict[str, Set[str]]
+
+        Keys are "names of fonts in the PDF":
+          - resource font names from page /Resources /Font (e.g. '/F1')
+          - AND their BaseFont names (without leading '/') when available
+            (e.g. 'ANIELG+Dedris-a')
+
+        Values are sets of PostScript names from your DB that match:
+          - FAST PATH: if BaseFont looks like 'ABCDEE+Dedris-a' and
+            'Dedris-a' exists in font_hash_index, we use {'Dedris-a'}
+            directly (no glyph hashing).
+          - Otherwise: fonts whose glyph hash set is a superset of the
+            glyph hashes in the subset font (via identify_font()).
+    """
+    normalized: Dict[str, Set[str]] = {}
+
+    # To avoid processing the same embedded font multiple times across pages
+    seen_font_stream_ids: Set[int] = set()
+
+    for page in PDFPage.create_pages(doc):
+        resources = resolve1(page.resources)
+        if not resources:
+            continue
+
+        font_dict = resources.get("Font")
+        if not font_dict:
+            continue
+
+        font_dict = resolve1(font_dict)
+
+        for res_name, font_ref in font_dict.items():
+            # res_name is a PDF name object like '/F1'
+            res_name_str = str(res_name)
+
+            font_obj = resolve1(font_ref)
+            if not isinstance(font_obj, dict):
+                continue
+
+            basefont = font_obj.get("BaseFont")
+            basefont_name = str(basefont) if basefont is not None else None
+            if basefont_name and basefont_name.startswith("/"):
+                basefont_name = basefont_name[1:]
+
+            # ------------------------------------------------------------------
+            # FAST PATH: try to infer original font from subset BaseFont name.
+            # Example: 'ANIELG+Dedris-a' -> 'Dedris-a'
+            # If 'Dedris-a' is a key in font_hash_index, use that and skip
+            # embedded font bytes / glyph hashing for this font.
+            # ------------------------------------------------------------------
+            fast_candidates: Optional[Set[str]] = None
+            if basefont_name and "+" in basefont_name:
+                suffix = basefont_name.split("+", 1)[1]
+                if suffix in font_hash_index:
+                    fast_candidates = {suffix}
+
+            if fast_candidates:
+                # Map by resource name (e.g. '/F1')
+                normalized.setdefault(res_name_str, set()).update(fast_candidates)
+                # And by BaseFont name (e.g. 'ANIELG+Dedris-a')
+                normalized.setdefault(basefont_name, set()).update(fast_candidates)
+                # Done with this font; no need to look at embedded font program
+                continue
+
+            # ------------------------------------------------------------------
+            # SLOW PATH: use embedded font bytes + identify_font()
+            # ------------------------------------------------------------------
+            font_desc = resolve1(font_obj.get("FontDescriptor"))
+            if not isinstance(font_desc, dict):
+                continue
+
+            font_bytes = None
+            font_stream_obj = None
+            for key in ("FontFile2", "FontFile", "FontFile3"):
+                ff = font_desc.get(key)
+                if ff is None:
+                    continue
+                try:
+                    font_stream_obj = stream_value(ff)
+                except Exception:
+                    font_stream_obj = None
+                if font_stream_obj is not None:
+                    try:
+                        font_bytes = font_stream_obj.get_data()
+                    except Exception:
+                        font_bytes = None
+                if font_bytes:
+                    break
+
+            if not font_bytes or font_stream_obj is None:
+                continue
+
+            # Deduplicate by id() of the stream object (cheap but effective)
+            sid = id(font_stream_obj)
+            if sid in seen_font_stream_ids:
+                continue
+            seen_font_stream_ids.add(sid)
+
+            # Identify this font against the DB (glyph-hash superset logic)
+            try:
+                candidates = identify_font(font_bytes, font_hash_index)
+            except Exception:
+                continue
+
+            if not candidates:
+                continue
+
+            # Map by resource name (e.g. '/F1')
+            normalized.setdefault(res_name_str, set()).update(candidates)
+
+            # Also map by BaseFont name (e.g. 'ANIELG+Dedris-a') if present
+            if basefont_name:
+                normalized.setdefault(basefont_name, set()).update(candidates)
+
+    return normalized
