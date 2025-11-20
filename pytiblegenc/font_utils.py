@@ -43,6 +43,9 @@ from fontTools.ttLib import TTFont, TTLibError
 
 logger = logging.getLogger(__name__)
 
+# Default path to the glyph database
+_DEFAULT_GLYPH_DB_PATH = Path(__file__).parent / "font_db" / "glyph_db.csv"
+
 
 # ---------------------------------------------------------------------------
 # Types
@@ -304,15 +307,20 @@ def get_glyph_hashes_from_bytes(font_bytes: bytes) -> Tuple[str, Set[GlyphRecord
 # DB index helpers (for identification)
 # ---------------------------------------------------------------------------
 
-def build_font_hash_index_from_csv(csv_path: Union[str, Path]) -> Dict[str, Set[str]]:
+def build_font_hash_index_from_csv(csv_path: Optional[Union[str, Path]] = None) -> Dict[str, Set[str]]:
     """
     Build an index from the glyph DB CSV:
 
         font_postscript_name -> set[glyph_hash]
 
+    Args:
+        csv_path: Path to the glyph database CSV. If None, uses the default bundled database.
+
     Assumes CSV columns created by create_db.py:
         glyph_hash,font_postscript_name,glyph_name,codepoint
     """
+    if csv_path is None:
+        csv_path = _DEFAULT_GLYPH_DB_PATH
     csv_path = Path(csv_path)
     index: Dict[str, Set[str]] = {}
 
@@ -330,11 +338,14 @@ def build_font_hash_index_from_csv(csv_path: Union[str, Path]) -> Dict[str, Set[
     return index
 
 
-def build_detailed_glyph_index_from_csv(csv_path: Union[str, Path]) -> Dict[str, Dict[str, Set[GlyphDetail]]]:
+def build_detailed_glyph_index_from_csv(csv_path: Optional[Union[str, Path]] = None) -> Dict[str, Dict[str, Set[GlyphDetail]]]:
     """
     Build a detailed index from the glyph DB CSV:
 
         font_postscript_name -> glyph_hash -> set[GlyphDetail]
+
+    Args:
+        csv_path: Path to the glyph database CSV. If None, uses the default bundled database.
 
     This allows us to get detailed information (glyph names, codepoints) for each 
     glyph hash in each font, useful for debugging ambiguous font matches.
@@ -342,6 +353,8 @@ def build_detailed_glyph_index_from_csv(csv_path: Union[str, Path]) -> Dict[str,
     Assumes CSV columns:
         glyph_hash,font_postscript_name,glyph_name,codepoint
     """
+    if csv_path is None:
+        csv_path = _DEFAULT_GLYPH_DB_PATH
     csv_path = Path(csv_path)
     index: Dict[str, Dict[str, Set[GlyphDetail]]] = {}
 
@@ -710,3 +723,45 @@ def _log_ambiguous_font_match(
                     )
     except Exception as e:
         logger.debug(f"Error logging ambiguous font match: {e}")
+
+
+def create_font_normalization_map(
+    normalized_fonts: Dict[str, Set[str]],
+    log_ambiguous: bool = False
+) -> Dict[str, str]:
+    """
+    Create a font normalization map from the identification results.
+    
+    This map is used to normalize font names during PDF text extraction.
+    For fonts with a single match, maps the PDF font name to the identified font.
+    For fonts with multiple matches, logs an error (if log_ambiguous=True) and uses the first match.
+    
+    Args:
+        normalized_fonts: Result from identify_pdf_fonts_from_db()
+        log_ambiguous: If True, log errors for fonts with multiple matches
+        
+    Returns:
+        Dict mapping PDF font names to normalized font names
+    """
+    font_map: Dict[str, str] = {}
+    
+    for pdf_font_name, candidates in normalized_fonts.items():
+        if len(candidates) == 0:
+            continue
+        elif len(candidates) == 1:
+            # Single match - straightforward mapping
+            font_map[pdf_font_name] = next(iter(candidates))
+        else:
+            # Multiple matches - log error and use first candidate (sorted for consistency)
+            sorted_candidates = sorted(candidates)
+            chosen = sorted_candidates[0]
+            font_map[pdf_font_name] = chosen
+            
+            if log_ambiguous:
+                candidates_str = ", ".join(sorted_candidates)
+                logger.error(
+                    f"Font {pdf_font_name} has ambiguous matches ({candidates_str}). "
+                    f"Using {chosen} for conversion, but results may be incorrect."
+                )
+    
+    return font_map

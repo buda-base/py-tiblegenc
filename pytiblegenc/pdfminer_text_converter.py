@@ -87,6 +87,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         maxlines = 100,
         remove_non_hz=True,
         pbs = "\n\n-- page {} --\n\n",
+        font_map: Optional[Dict[str, str]] = None,
     ) -> None:
         super().__init__(rsrcmgr, outfp, codec=codec, pageno=pageno, laparams=laparams)
         self.imagewriter = imagewriter
@@ -98,6 +99,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         self.maxlines = maxlines
         self.pbs = pbs
         self.remove_non_hz = remove_non_hz
+        self.font_map = font_map or {}  # Map from PDF font name to normalized font name
 
     def scale_region_box(self, ltpage):
         if not hasattr(ltpage, "x0"):
@@ -156,6 +158,11 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         fontname = item.fontname
         #logging.error(item.graphicstate)
         fontname = fontname[fontname.find('+')+1:]
+        
+        # Apply font normalization if a mapping is available
+        if fontname in self.font_map:
+            fontname = self.font_map[fontname]
+        
         ctext = convert_string(text, fontname, self.stats)
         if ctext is not None:
             text = ctext
