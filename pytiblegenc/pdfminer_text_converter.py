@@ -89,6 +89,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         remove_non_hz=True,
         pbs = "\n\n-- page {} --\n\n",
         font_normalization: Optional[Dict[str, Set[str]]] = None,
+        error_chr_fun = None,
     ) -> None:
         super().__init__(rsrcmgr, outfp, codec=codec, pageno=pageno, laparams=laparams)
         self.imagewriter = imagewriter
@@ -101,6 +102,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         self.pbs = pbs
         self.remove_non_hz = remove_non_hz
         self.font_normalization = font_normalization
+        self.error_chr_fun = error_chr_fun
 
     def scale_region_box(self, ltpage):
         if not hasattr(ltpage, "x0"):
@@ -179,7 +181,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
                             fontname = next(iter(normalized_set))
         
         fontname = fontname[fontname.find('+')+1:]
-        ctext = convert_string(text, fontname, self.stats)
+        ctext = convert_string(text, fontname, self.stats, self.error_chr_fun)
         if ctext is not None:
             text = ctext
         self.write_text(text)

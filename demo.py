@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 import json
 import logging
+import sys
 
 from pytiblegenc import DuffedTextConverter, build_font_hash_index_from_csv, identify_pdf_fonts_from_db, get_glyph_db_path
 from pdfminer.pdfdocument import PDFDocument
@@ -14,6 +15,15 @@ from pdfminer.layout import LAParams
 
 # uncomment to debug region
 #logging.basicConfig(level=logging.DEBUG)
+
+def custom_error_chr(char, font_name, char_code=None):
+    """
+    Custom error character handler that logs to stderr and returns [u] in the output.
+    """
+    if char_code is None:
+        char_code = ord(char)
+    print(f"Unknown character: '{char}' (U+{char_code:04X}, {char_code}) in font '{font_name}'", file=sys.stderr)
+    return "[u]"
 
 # region is x, y, w, h as in https://iiif.io/api/image/3.0/#41-region
 # REGION = [132,0,928,100000] # KWSB
@@ -47,7 +57,7 @@ def converted_txt_from_pdf(pdf_file_name, region=None, page_break_str="\n\n-- pa
             logging.warning(f"Could not load font normalization: {e}")
         
         rsrcmgr = PDFResourceManager()
-        device = DuffedTextConverter(rsrcmgr, output_string, stats, region = region, pbs = page_break_str, remove_non_hz=remove_non_hz, font_normalization=font_normalization)
+        device = DuffedTextConverter(rsrcmgr, output_string, stats, region = region, pbs = page_break_str, remove_non_hz=remove_non_hz, font_normalization=font_normalization, error_chr_fun=custom_error_chr)
         interpreter = PDFPageInterpreter(rsrcmgr, device)
         for page in PDFPage.create_pages(doc):
             interpreter.process_page(page)

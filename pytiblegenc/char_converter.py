@@ -4,8 +4,21 @@ import os
 
 BASE = None
 UTFC_BASE = None
-ERROR_CHR = "༠༠༠༠"
-DEBUGMODE = True
+ERROR_CHR = "༠༠༠༠" # the way error characters are encoded in the font conversion tables
+
+def default_error_chr(char, font_name, char_code=None):
+    """
+    Default error character handler. Returns the original character.
+    
+    Args:
+        char: The character that couldn't be converted
+        font_name: The font name
+        char_code: Optional character code (ord(char))
+    
+    Returns:
+        The string to use as replacement (default: the original character)
+    """
+    return char
 
 def get_base():
     global BASE
@@ -58,10 +71,21 @@ def uni_char_from_encoding(nonunicp, encoding="cp1252"):
         #logging.warn(f"couldn't decode {nonunicp}")
         return
 
-def _convert_char(char, font_name, stats=None):
+def _convert_char(char, font_name, stats=None, error_chr_fun=None):
     """
     /!\ font_name doesn't get normalized in this function
+    
+    Args:
+        char: The character to convert
+        font_name: The font name
+        stats: Optional stats dictionary
+        error_chr_fun: Optional function to handle unrecognized characters.
+                       Signature: error_chr_fun(char, font_name, char_code) -> str
+                       If None, uses default_error_chr.
     """
+    if error_chr_fun is None:
+        error_chr_fun = default_error_chr
+    
     base = get_base()
     utfc_base = get_utfc_base()
     if char == "\u00a0":
@@ -76,11 +100,7 @@ def _convert_char(char, font_name, stats=None):
                 stats["unknown_characters"][font_name][char] = 0
             stats["unknown_characters"][font_name][char] += 1
         #logging.error("unknown character: '%s' (%d) in %s" % (char, ord(char), font_name))
-        if DEBUGMODE:
-            #return "%s,%d,?(%s)" % (font_name, ord(char), char)
-            return "[[%s,%s]]" % (font_name, char)
-        else:
-            return ""
+        return error_chr_fun(char, font_name, ord(char))
     res = base_ft.get(char) if base_ft is not None else None
     utfc_res = utfc_base_ft.get(char) if utfc_base_ft is not None else None
     if res is not None and utfc_res is not None and res != utfc_res:
@@ -89,27 +109,23 @@ def _convert_char(char, font_name, stats=None):
             if stats_key not in stats["diffs_with_utfc"]:
                 stats["diffs_with_utfc"][stats_key] = 0
             stats["diffs_with_utfc"][stats_key] += 1
-        if DEBUGMODE:
-            return "[[%s,%d,%s or %s]]" % (font_name, ord(char), res, utfc_res)
-        else:
-            return res
+        # When there's a conflict, prefer the base result but could use error_chr for verbose output
+        return res
+    # Check if result is the error character marker
     if res == ERROR_CHR:
         if stats:
             stats["error_characters"] += 1
-        if DEBUGMODE:
-            return '[[ERR]]'
-        else:
-            return ''
+        return error_chr_fun(char, font_name, ord(char))
     return res if res is not None else utfc_res
 
-def _convert_byte(b, font_name, stats=None):
+def _convert_byte(b, font_name, stats=None, error_chr_fun=None):
     """
     b is expected to be a number between 0 and 255
     """
     unic = uni_char_from_encoding(b)
     if unic is None:
         unic = chr(b)
-    return _convert_char(unic, font_name, stats)
+    return _convert_char(unic, font_name, stats, error_chr_fun)
 
 def normalize_font_name(font_name, weight=None):
     """
@@ -133,7 +149,18 @@ def normalize_font_name(font_name, weight=None):
         font_name += "Skt3"
     return font_name
 
-def convert_string(s, font_name, stats):
+def convert_string(s, font_name, stats, error_chr_fun=None):
+    """
+    Convert a string from a font encoding to Unicode.
+    
+    Args:
+        s: The string to convert
+        font_name: The font name
+        stats: Stats dictionary
+        error_chr_fun: Optional function to handle unrecognized characters.
+                       Signature: error_chr_fun(char, font_name, char_code) -> str
+                       If None, uses default_error_chr.
+    """
     if s.startswith("(cid:"):
         return ""
     font_name = normalize_font_name(font_name)
@@ -149,6 +176,6 @@ def convert_string(s, font_name, stats):
     stats["handled_fonts"][font_name] += 1
     res = ''
     for char in s:
-        res += _convert_char(char, font_name, stats)
+        res += _convert_char(char, font_name, stats, error_chr_fun)
     #logging.error("converted %s:%s -> %s" % (font_name, s, res))
     return res
