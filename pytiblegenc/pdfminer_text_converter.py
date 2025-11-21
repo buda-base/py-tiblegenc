@@ -35,6 +35,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     TextIO,
     Tuple,
     TypeVar,
@@ -87,6 +88,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         maxlines = 100,
         remove_non_hz=True,
         pbs = "\n\n-- page {} --\n\n",
+        font_normalization: Optional[Dict[str, Set[str]]] = None,
     ) -> None:
         super().__init__(rsrcmgr, outfp, codec=codec, pageno=pageno, laparams=laparams)
         self.imagewriter = imagewriter
@@ -98,6 +100,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         self.maxlines = maxlines
         self.pbs = pbs
         self.remove_non_hz = remove_non_hz
+        self.font_normalization = font_normalization
 
     def scale_region_box(self, ltpage):
         if not hasattr(ltpage, "x0"):
@@ -155,6 +158,26 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         #logging.error(ltpage)
         fontname = item.fontname
         #logging.error(item.graphicstate)
+        
+        # Apply font normalization from DB if available (before any other normalization)
+        if self.font_normalization is not None:
+            # Try to find the font in the normalization mapping
+            # Check full fontname first (e.g., 'ANIELG+Dedris-a')
+            if fontname in self.font_normalization:
+                normalized_set = self.font_normalization[fontname]
+                if normalized_set:
+                    # Use the first normalized name from the set
+                    fontname = next(iter(normalized_set))
+            else:
+                # Try BaseFont part after '+' (e.g., 'Dedris-a')
+                plus_pos = fontname.find('+')
+                if plus_pos >= 0:
+                    basefont = fontname[plus_pos+1:]
+                    if basefont in self.font_normalization:
+                        normalized_set = self.font_normalization[basefont]
+                        if normalized_set:
+                            fontname = next(iter(normalized_set))
+        
         fontname = fontname[fontname.find('+')+1:]
         ctext = convert_string(text, fontname, self.stats)
         if ctext is not None:

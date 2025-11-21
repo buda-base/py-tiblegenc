@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import logging
 
-from pytiblegenc import DuffedTextConverter, build_font_hash_index_from_csv, identify_pdf_fonts_from_db
+from pytiblegenc import DuffedTextConverter, build_font_hash_index_from_csv, identify_pdf_fonts_from_db, get_glyph_db_path
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfpage import PDFPage
@@ -36,8 +36,18 @@ def converted_txt_from_pdf(pdf_file_name, region=None, page_break_str="\n\n-- pa
     with open(pdf_file_name, 'rb') as in_file:
         parser = PDFParser(in_file)
         doc = PDFDocument(parser)
+        
+        # Identify fonts from DB and get normalization mapping
+        font_normalization = None
+        try:
+            glyph_db_path = get_glyph_db_path()
+            glyph_index = build_font_hash_index_from_csv(str(glyph_db_path))
+            font_normalization = identify_pdf_fonts_from_db(doc, glyph_index)
+        except Exception as e:
+            logging.warning(f"Could not load font normalization: {e}")
+        
         rsrcmgr = PDFResourceManager()
-        device = DuffedTextConverter(rsrcmgr, output_string, stats, region = region, pbs = page_break_str, remove_non_hz=remove_non_hz)
+        device = DuffedTextConverter(rsrcmgr, output_string, stats, region = region, pbs = page_break_str, remove_non_hz=remove_non_hz, font_normalization=font_normalization)
         interpreter = PDFPageInterpreter(rsrcmgr, device)
         for page in PDFPage.create_pages(doc):
             interpreter.process_page(page)
@@ -62,7 +72,8 @@ def convert_folder(input_folder="input/", output_folder="output/", region=None, 
         except ValueError:
             print("couldn't open %s" % path)
 
-def identify_fonts_in_pdf(pdf_file_path, glyph_db_path="font_db/glyph_db.csv"):
+def identify_fonts_in_pdf(pdf_file_path):
+    glyph_db_path = get_glyph_db_path()
     glyph_index = build_font_hash_index_from_csv(glyph_db_path)
     #print(glyph_index)
     with open(pdf_file_path, 'rb') as in_file:
@@ -76,7 +87,7 @@ def identify_fonts_in_pdf(pdf_file_path, glyph_db_path="font_db/glyph_db.csv"):
 # for KR: cropbox is 595x842
 # margin left = 550/4674  * 842 = 99
 # right region = 4133/4674  * 842 = 744
-#txt = deduffed_txt_from_pdf("input2/Copy of v1.pdf", REGION, "\n\n-- page {} --\n\n")
-#print(txt)
+txt = converted_txt_from_pdf("withoutnames.pdf", REGION, "\n\n-- page {} --\n\n")
+print(txt)
 
 identify_fonts_in_pdf("withoutnames.pdf")

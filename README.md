@@ -15,7 +15,7 @@ The code has a `region` argument that specified PDF coordinates of the text to c
 ### Installation
 
 ```
-pip install pdfminer.six
+pip install pdfminer.six fonttools
 ```
 
 ### Acknowledgement
