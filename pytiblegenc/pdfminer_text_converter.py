@@ -48,7 +48,7 @@ from typing import (
 USUAL_LA_PARAMS = LAParams(
     char_margin=1000,   # merge far-apart glyph runs on same visual line
     word_margin=1000,    # allow wide spacing without splitting words
-#    line_overlap=0.8, # for some reason, just makes things crazy
+    line_overlap=0.0, # for some reason, just makes things crazy
     line_margin=1.8,  # merge close baselines
     boxes_flow=None,  # don't attempt column-flow reordering
     detect_vertical=False,
