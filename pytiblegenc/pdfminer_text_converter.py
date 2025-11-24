@@ -90,6 +90,8 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         pbs = "\n\n-- page {} --\n\n",
         font_normalization: Optional[Dict[str, Set[str]]] = None,
         error_chr_fun = None,
+        track_font_size: bool = False,
+        font_size_format: str = "<fs:{}>",
     ) -> None:
         super().__init__(rsrcmgr, outfp, codec=codec, pageno=pageno, laparams=laparams)
         self.imagewriter = imagewriter
@@ -103,6 +105,9 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         self.remove_non_hz = remove_non_hz
         self.font_normalization = font_normalization
         self.error_chr_fun = error_chr_fun
+        self.track_font_size = track_font_size
+        self.font_size_format = font_size_format
+        self.current_font_size = None
 
     def scale_region_box(self, ltpage):
         if not hasattr(ltpage, "x0"):
@@ -184,6 +189,14 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         ctext = convert_string(text, fontname, self.stats, self.error_chr_fun)
         if ctext is not None:
             text = ctext
+        
+        # Track font size if enabled (use LTChar.size for actual font size in points)
+        if self.track_font_size and isinstance(item, LTChar):
+            font_size = round(item.size)
+            if self.current_font_size != font_size:
+                self.current_font_size = font_size
+                self.write_text(self.font_size_format.format(font_size))
+        
         self.write_text(text)
 
     def write_text(self, text: str) -> None:
@@ -208,6 +221,9 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
                 if self.imagewriter is not None:
                     self.imagewriter.export_image(item)
         self.write_text(self.pbs.format(ltpage.pageid))
+        # Reset font size at the beginning of each page
+        if self.track_font_size:
+            self.current_font_size = None
         render(ltpage, {"linenum": 1})
 
     # Some dummy functions to save memory/CPU when all that is wanted

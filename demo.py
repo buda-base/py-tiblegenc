@@ -23,7 +23,7 @@ def custom_error_chr(char, font_name, char_code=None):
     if char_code is None:
         char_code = ord(char)
     print(f"Unknown character: '{char}' (U+{char_code:04X}, {char_code}) in font '{font_name}'", file=sys.stderr)
-    return "[u]"
+    return char
 
 # region is x, y, w, h as in https://iiif.io/api/image/3.0/#41-region
 # REGION = [132,0,928,100000] # KWSB
@@ -33,7 +33,7 @@ REGION = None
 
 
 
-def converted_txt_from_pdf(pdf_file_name, region=None, page_break_str="\n\n-- page {} --\n\n", remove_non_hz=True):
+def converted_txt_from_pdf(pdf_file_name, region=None, page_break_str="\n\n-- page {} --\n\n", remove_non_hz=True, track_font_size=False, font_size_format="<fs:{}>"):
     stats = {
         "unhandled_fonts": {},
         "handled_fonts": {},
@@ -57,7 +57,7 @@ def converted_txt_from_pdf(pdf_file_name, region=None, page_break_str="\n\n-- pa
             logging.warning(f"Could not load font normalization: {e}")
         
         rsrcmgr = PDFResourceManager()
-        device = DuffedTextConverter(rsrcmgr, output_string, stats, region = region, pbs = page_break_str, remove_non_hz=remove_non_hz, font_normalization=font_normalization, error_chr_fun=custom_error_chr)
+        device = DuffedTextConverter(rsrcmgr, output_string, stats, region = region, pbs = page_break_str, remove_non_hz=remove_non_hz, font_normalization=font_normalization, error_chr_fun=custom_error_chr, track_font_size=track_font_size, font_size_format=font_size_format)
         interpreter = PDFPageInterpreter(rsrcmgr, device)
         for page in PDFPage.create_pages(doc):
             interpreter.process_page(page)
@@ -70,11 +70,11 @@ def converted_txt_from_pdf(pdf_file_name, region=None, page_break_str="\n\n-- pa
             print("%s,%d,??(%s)" % (fontname, ord(c), c))
     return res
 
-def convert_folder(input_folder="input/", output_folder="output/", region=None, page_break_str="\n\n-- page {} --\n\n"):
+def convert_folder(input_folder="input/", output_folder="output/", region=None, page_break_str="\n\n-- page {} --\n\n", track_font_size=False):
     paths = sorted(Path(input_folder).glob("*.pdf"))
     for path in paths:
         try:
-            txt = converted_txt_from_pdf(path, region, page_break_str)
+            txt = converted_txt_from_pdf(path, region, page_break_str, track_font_size=track_font_size)
             txt_path = Path(output_folder) / Path(str(path.stem) + ".txt")
             print(txt_path)
             with open(txt_path, "w", encoding="utf-8") as f:
@@ -97,7 +97,9 @@ def identify_fonts_in_pdf(pdf_file_path):
 # for KR: cropbox is 595x842
 # margin left = 550/4674  * 842 = 99
 # right region = 4133/4674  * 842 = 744
-txt = converted_txt_from_pdf("withoutnames.pdf", REGION, "\n\n-- page {} --\n\n")
+
+# Example with font size tracking enabled:
+txt = converted_txt_from_pdf("withoutnames.pdf", REGION, "\n\n-- page {} --\n\n", track_font_size=True)
 print(txt)
 
 identify_fonts_in_pdf("withoutnames.pdf")
