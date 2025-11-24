@@ -28,6 +28,8 @@ from pdfminer.utils import apply_matrix_pt
 from .char_converter import convert_string
 import logging
 
+MIN_TEXT_SIZE = 5  # points
+
 from typing import (
     BinaryIO,
     Dict,
@@ -43,7 +45,15 @@ from typing import (
     cast,
 )
 
-USUAL_LA_PARAMS = LAParams(word_margin=10000, char_margin=1000)
+USUAL_LA_PARAMS = LAParams(
+    char_margin=1000,   # merge far-apart glyph runs on same visual line
+    word_margin=1000,    # allow wide spacing without splitting words
+#    line_overlap=0.8, # for some reason, just makes things crazy
+    line_margin=1.8,  # merge close baselines
+    boxes_flow=None,  # don't attempt column-flow reordering
+    detect_vertical=False,
+    all_texts=False,
+)
 
 # see https://github.com/pdfminer/pdfminer.six/issues/900
 # for some reason pdfminer uses the mediabox coordinates for LTPage
@@ -190,6 +200,10 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         if ctext is not None:
             text = ctext
         
+        # ignore very small decorative characters
+        #if isinstance(item, LTChar) and item.size < MIN_TEXT_SIZE:
+        #    return
+
         # Track font size if enabled (use LTChar.size for actual font size in points)
         if self.track_font_size and isinstance(item, LTChar):
             font_size = round(item.size)
