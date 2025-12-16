@@ -22,6 +22,10 @@ from pdfminer.layout import LTTextBoxVertical
 from pdfminer.layout import LTTextGroup
 from pdfminer.layout import LTTextLine
 from pdfminer.converter import PDFLayoutAnalyzer
+from pdfminer.pdffont import PDFFont
+from pdfminer.pdfdevice import PDFUnicodeNotDefined
+from pdfminer.pdfcolor import PDFColorSpace
+from pdfminer.pdfinterp import PDFGraphicState
 from pdfminer.utils import AnyIO, Point, Matrix, Rect, PathSegment, make_compat_str, compatible_encode_method
 from pdfminer.utils import apply_matrix_pt
 
@@ -46,8 +50,9 @@ from typing import (
 )
 
 USUAL_LA_PARAMS = LAParams(
-    char_margin=1000,   # merge far-apart glyph runs on same visual line
+    char_margin=1000,    # merge far-apart glyph runs on same visual line
     word_margin=1000,    # allow wide spacing without splitting words
+    char_margin_left=2,  # new parameter, see https://github.com/pdfminer/pdfminer.six/issues/1173
     line_overlap=0.0, # for some reason, just makes things crazy
     line_margin=1.8,  # merge close baselines
     boxes_flow=None,  # don't attempt column-flow reordering
@@ -118,6 +123,73 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         self.track_font_size = track_font_size
         self.font_size_format = font_size_format
         self.current_font_size = None
+        # Keep a handle to the current LTPage so we can apply region tests
+        # during render_char (i.e., before layout analysis runs).
+        self._current_ltpage: Optional[LTPage] = None
+
+    def begin_page(self, page: PDFPage, ctm: Matrix) -> None:
+        """
+        Override begin_page so we can track the current LTPage for pre-analysis
+        filtering. We intentionally mirror the global cropbox hack behavior.
+        """
+        (x0, y0, x1, y1) = page.cropbox
+        (x0, y0) = apply_matrix_pt(ctm, (x0, y0))
+        (x1, y1) = apply_matrix_pt(ctm, (x1, y1))
+        mediabox = (0, 0, abs(x0 - x1), abs(y0 - y1))
+        self.cur_item = LTPage(self.pageno, mediabox)
+        self._current_ltpage = self.cur_item
+
+    def _is_rotated_matrix(self, matrix: Matrix) -> bool:
+        # Same criterion as is_rotated(item): any non-zero shear terms.
+        return bool(matrix and (matrix[1] != 0.0 or matrix[2] != 0.0))
+
+    def render_char(
+        self,
+        matrix: Matrix,
+        font: PDFFont,
+        fontsize: float,
+        scaling: float,
+        rise: float,
+        cid: int,
+        ncs: PDFColorSpace,
+        graphicstate: PDFGraphicState,
+    ) -> float:
+        """
+        Create the LTChar, but drop it *before it is added to the layout tree*
+        when it is out of region or rotated. This prevents ignored glyphs from
+        influencing pdfminer's layout analysis (line grouping / textboxes).
+        """
+        try:
+            text = font.to_unichr(cid)
+            assert isinstance(text, str), str(type(text))
+        except PDFUnicodeNotDefined:
+            text = self.handle_undefined_char(font, cid)
+
+        textwidth = font.char_width(cid)
+        textdisp = font.char_disp(cid)
+        item = LTChar(
+            matrix,
+            font,
+            fontsize,
+            scaling,
+            rise,
+            text,
+            textwidth,
+            textdisp,
+            ncs,
+            graphicstate,
+        )
+
+        # Pre-analysis filters: do NOT add ignored chars to the layout tree.
+        if self.remove_non_hz and self._is_rotated_matrix(matrix):
+            self.stats["nb_non_horizontal_removed"] += 1
+            return item.adv
+
+        if self._current_ltpage is not None and not self.in_region(item, self._current_ltpage):
+            return item.adv
+
+        self.cur_item.add(item)
+        return item.adv
 
     def scale_region_box(self, ltpage):
         if not hasattr(ltpage, "x0"):
