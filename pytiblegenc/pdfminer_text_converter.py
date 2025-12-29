@@ -21,6 +21,8 @@ from pdfminer.layout import LTTextBox
 from pdfminer.layout import LTTextBoxVertical
 from pdfminer.layout import LTTextGroup
 from pdfminer.layout import LTTextLine
+from pdfminer.layout import LTTextLineHorizontal
+from pdfminer.layout import LTTextLineVertical
 from pdfminer.converter import PDFLayoutAnalyzer
 from pdfminer.pdffont import PDFFont
 from pdfminer.pdfdevice import PDFUnicodeNotDefined
@@ -31,6 +33,7 @@ from pdfminer.utils import apply_matrix_pt
 
 from .char_converter import convert_string
 import logging
+import sys
 
 MIN_TEXT_SIZE = 5  # points
 
@@ -38,6 +41,8 @@ from typing import (
     BinaryIO,
     Dict,
     Generic,
+    Iterable,
+    Iterator,
     List,
     Optional,
     Sequence,
@@ -49,7 +54,154 @@ from typing import (
     cast,
 )
 
-USUAL_LA_PARAMS = LAParams(
+# Custom LAParams with char_margin_left support
+# This extends the base LAParams to add char_margin_left parameter
+# that was rejected from the upstream pdfminer.six repository
+class CustomLAParams(LAParams):
+    """Extended LAParams with char_margin_left support.
+    
+    If two characters are closer together than char_margin_left AND the second
+    character is to the left of the first, they are considered part of the same line.
+    This is useful to prevent line wrapping when processing left-to-right text.
+    If not specified, defaults to char_margin.
+    """
+    def __init__(
+        self,
+        line_overlap: float = 0.5,
+        char_margin: float = 2.0,
+        line_margin: float = 0.5,
+        word_margin: float = 0.1,
+        boxes_flow: Optional[float] = 0.5,
+        detect_vertical: bool = False,
+        all_texts: bool = False,
+        char_margin_left: Optional[float] = None,
+    ) -> None:
+        # Check if base class already supports char_margin_left
+        try:
+            super().__init__(
+                line_overlap=line_overlap,
+                char_margin=char_margin,
+                line_margin=line_margin,
+                word_margin=word_margin,
+                boxes_flow=boxes_flow,
+                detect_vertical=detect_vertical,
+                all_texts=all_texts,
+                char_margin_left=char_margin_left,
+            )
+            # If we get here, base class supports it, so we're done
+            return
+        except TypeError:
+            # Base class doesn't support char_margin_left, so we need to handle it ourselves
+            super().__init__(
+                line_overlap=line_overlap,
+                char_margin=char_margin,
+                line_margin=line_margin,
+                word_margin=word_margin,
+                boxes_flow=boxes_flow,
+                detect_vertical=detect_vertical,
+                all_texts=all_texts,
+            )
+            # Add char_margin_left attribute
+            self.char_margin_left = (
+                char_margin_left if char_margin_left is not None else char_margin
+            )
+
+
+# Monkey-patch LTLayoutContainer.group_objects to support char_margin_left
+# This adds support for the char_margin_left parameter that was rejected from upstream
+# see https://github.com/pdfminer/pdfminer.six/issues/1173
+
+# Apply monkey patch if needed
+_ENABLE_MONKEY_PATCH = True  # Set to False to disable patching for testing
+logging.info(f"[CHAR_MARGIN_LEFT] Monkey patching ENABLE flag: {_ENABLE_MONKEY_PATCH}", file=sys.stderr)
+if _ENABLE_MONKEY_PATCH and not hasattr(LTLayoutContainer.group_objects, '_char_margin_left_patched'):
+    _original_group_objects = LTLayoutContainer.group_objects
+    def _custom_group_objects(
+        self,
+        laparams: LAParams,
+        objs: Iterable[LTComponent],
+    ) -> Iterator[LTTextLine]:
+        obj0 = None
+        line = None
+        for obj1 in objs:
+            if obj0 is not None:
+                # Determine which char_margin to use based on horizontal direction
+                # Use char_margin_left when moving leftward (potential line wrap)
+                # Use char_margin when moving rightward (normal text flow)
+                is_leftward = obj1.x0 < obj0.x0
+                if hasattr(laparams, 'char_margin_left') and is_leftward:
+                    char_margin = laparams.char_margin_left
+                else:
+                    char_margin = laparams.char_margin
+                
+                # For leftward movement, hdistance might return 0 (overlap case)
+                # We need to check the actual distance from obj0 to obj1
+                if is_leftward and hasattr(laparams, 'char_margin_left'):
+                    # Calculate actual distance: from right edge of obj0 to left edge of obj1
+                    obj0_x1 = obj0.x1 if hasattr(obj0, 'x1') else obj0.x0 + (obj0.width if hasattr(obj0, 'width') else 0)
+                    obj1_x0 = obj1.x0
+                    # If obj1 is to the left of obj0's right edge, calculate the gap
+                    # If they overlap or are adjacent, distance is 0 or small
+                    # If obj1 is far to the left, distance is large
+                    actual_hdistance = max(0, obj0_x1 - obj1_x0)
+                    # Use strict < to match original logic: if distance >= threshold, don't merge
+                    threshold = max(obj0.width, obj1.width) * char_margin
+                    hdistance_check = actual_hdistance < threshold
+                else:
+                    # Normal case: use hdistance
+                    hdistance_check = obj0.hdistance(obj1) < max(obj0.width, obj1.width) * char_margin
+                
+                halign = (
+                    obj0.is_voverlap(obj1)
+                    and min(obj0.height, obj1.height) * laparams.line_overlap
+                    < obj0.voverlap(obj1)
+                    and hdistance_check
+                )
+                valign = (
+                    laparams.detect_vertical
+                    and obj0.is_hoverlap(obj1)
+                    and min(obj0.width, obj1.width) * laparams.line_overlap
+                    < obj0.hoverlap(obj1)
+                    and obj0.vdistance(obj1)
+                    < max(obj0.height, obj1.height) * char_margin
+                )
+                if (halign and isinstance(line, LTTextLineHorizontal)) or (
+                    valign and isinstance(line, LTTextLineVertical)
+                ):
+                    line.add(obj1)
+                elif line is not None:
+                    yield line
+                    line = None
+                elif valign and not halign:
+                    line = LTTextLineVertical(laparams.word_margin)
+                    line.add(obj0)
+                    line.add(obj1)
+                elif halign and not valign:
+                    line = LTTextLineHorizontal(laparams.word_margin)
+                    line.add(obj0)
+                    line.add(obj1)
+                else:
+                    line = LTTextLineHorizontal(laparams.word_margin)
+                    line.add(obj0)
+                    yield line
+                    line = None
+            obj0 = obj1
+        if line is None:
+            line = LTTextLineHorizontal(laparams.word_margin)
+            assert obj0 is not None
+            line.add(obj0)
+        yield line
+    LTLayoutContainer.group_objects = _custom_group_objects
+    LTLayoutContainer.group_objects._char_margin_left_patched = True
+    logging.debug("[CHAR_MARGIN_LEFT] ✓ Monkey-patched LTLayoutContainer.group_objects to support char_margin_left", file=sys.stderr)
+elif not _ENABLE_MONKEY_PATCH:
+    logging.debug("[CHAR_MARGIN_LEFT] ⚠ Monkey patching is DISABLED - char_margin_left will not work!", file=sys.stderr)
+elif hasattr(LTLayoutContainer.group_objects, '_char_margin_left_patched'):
+    logging.debug("[CHAR_MARGIN_LEFT] LTLayoutContainer.group_objects already patched (skipping)", file=sys.stderr)
+else:
+    logging.debug("[CHAR_MARGIN_LEFT] ⚠ Monkey patching was NOT applied (unknown reason)", file=sys.stderr)
+
+USUAL_LA_PARAMS = CustomLAParams(
     char_margin=1000,    # merge far-apart glyph runs on same visual line
     word_margin=1000,    # allow wide spacing without splitting words
     char_margin_left=2,  # new parameter, see https://github.com/pdfminer/pdfminer.six/issues/1173
