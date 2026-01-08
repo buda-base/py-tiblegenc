@@ -18,6 +18,7 @@ def default_error_chr(char, font_name, char_code=None):
     Returns:
         The string to use as replacement (default: the original character)
     """
+    #print(f"char '{char}' not found in {font_name}")
     return char
 
 def get_base():
@@ -40,7 +41,9 @@ def get_base_from_file(filename):
     with open(str(path), newline='', encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile, quotechar='"')
         for row in reader:
-            if len(row) < 3 or not row[2]:
+            # row[2] can be empty in the case where we don't want to convert the character
+            # for instance space in Ededris-a, etc.
+            if len(row) < 3: 
                 continue
             if row[0] not in base:
                 base[row[0]] = {}
@@ -85,7 +88,9 @@ def _convert_char(char, font_name, stats=None, error_chr_fun=None):
     """
     if error_chr_fun is None:
         error_chr_fun = default_error_chr
-    
+    if char == '\n':
+        # this seems somewhat universal
+        return char
     base = get_base()
     utfc_base = get_utfc_base()
     if char == "\u00a0":
