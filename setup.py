@@ -10,7 +10,7 @@ long_description = readme_file.read_text(encoding="utf-8") if readme_file.exists
 
 setup(
     name="pytiblegenc",
-    version="0.1.0",
+    version="0.2.0",
     description="Python tool for converting PDFs using non-Unicode Tibetan fonts to Unicode text",
     long_description=long_description,
     long_description_content_type="text/markdown",
