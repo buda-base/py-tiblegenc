@@ -33,6 +33,7 @@ import tempfile
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
+from functools import lru_cache
 from typing import Dict, List, Optional, Set, Tuple, Iterable, Union
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdftypes import resolve1, stream_value
@@ -331,6 +332,41 @@ def build_font_hash_index_from_csv(csv_path: Union[str, Path]) -> Dict[str, Set[
             index.setdefault(ps_name, set()).add(glyph_hash)
 
     return index
+
+
+@lru_cache(maxsize=1)
+def build_glyph_lookup_tables(csv_path: Union[str, Path]) -> Tuple[Dict[Tuple[str, int], str], Dict[str, Set[Tuple[str, int]]]]:
+    """
+    Build lookup tables from glyph DB for character recovery.
+    Returns:
+        forward_map: {(font_name, codepoint): glyph_hash}
+        reverse_map: {glyph_hash: set((font_name, codepoint))}
+    """
+    csv_path = Path(csv_path)
+    forward_map: Dict[Tuple[str, int], str] = {}
+    reverse_map: Dict[str, Set[Tuple[str, int]]] = {}
+
+    with csv_path.open("r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            glyph_hash = row["glyph_hash"]
+            ps_name = row["font_postscript_name"]
+            codepoint_str = row["codepoint"]
+
+            if not glyph_hash or not ps_name or not codepoint_str:
+                continue
+            
+            try:
+                codepoint = int(codepoint_str)
+            except ValueError:
+                continue
+
+            key = (ps_name, codepoint)
+            forward_map[key] = glyph_hash
+            
+            reverse_map.setdefault(glyph_hash, set()).add(key)
+
+    return forward_map, reverse_map
 
 
 def identify_font(font_bytes: bytes, font_hash_index: Dict[str, Set[str]]) -> Set[str]:

@@ -149,6 +149,18 @@ class BodyConverter(HTMLParser):
         # Apply h[XX] replacement using current font (if any)
         font = self.font_stack[-1]
         if font:
+            # TODO: if font ends with "Skt1", "Skt2" or "Skt3":
+            # read a csv file passed as cli argument, that contains four columns:
+            # the first column is a string, "Skt1", "Skt2" or "Skt3"
+            # the second column is the byte string (ex: "A8")
+            # the third column is a replacement character, empty by default
+            # the fourth column is the total number of occurences.
+            # in that case (font name ending in "Skt..."), do the following:
+            # look in the file if there is a replacement character,
+            #  - if there is, use it as replacement
+            #  - if there isn't (column empty or no corresponding row), replace the character with "S1[A8]" for Skt1 byte A8
+            # add one to the total number of occurences of the character in the data
+            # at the end of the conversion of the file, write the csv file on disk with the updated data
             def repl(m):
                 b = int(m.group(1), 16)
                 #if b < 0x20:

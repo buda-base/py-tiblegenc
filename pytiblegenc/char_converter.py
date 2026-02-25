@@ -74,7 +74,7 @@ def uni_char_from_encoding(nonunicp, encoding="cp1252"):
         #logging.warn(f"couldn't decode {nonunicp}")
         return
 
-def _convert_char(char, font_name, stats=None, error_chr_fun=None):
+def _convert_char(char, font_name, stats=None, error_chr_fun=None, glyph_lookup=None):
     """
     /!\ font_name doesn't get normalized in this function
     
@@ -85,6 +85,7 @@ def _convert_char(char, font_name, stats=None, error_chr_fun=None):
         error_chr_fun: Optional function to handle unrecognized characters.
                        Signature: error_chr_fun(char, font_name, char_code) -> str
                        If None, uses default_error_chr.
+        glyph_lookup: Optional tuple (forward_map, reverse_map) for glyph-based recovery
     """
     if error_chr_fun is None:
         error_chr_fun = default_error_chr
@@ -98,6 +99,25 @@ def _convert_char(char, font_name, stats=None, error_chr_fun=None):
     base_ft = base.get(font_name)
     utfc_base_ft = utfc_base.get(font_name)
     if (base_ft is None or char not in base_ft) and (utfc_base_ft is None or char not in utfc_base_ft):
+        # Try glyph_lookup
+        if glyph_lookup:
+            forward_map, reverse_map = glyph_lookup
+            glyph_hash = forward_map.get((font_name, ord(char)))
+            if glyph_hash:
+                candidates = reverse_map.get(glyph_hash, set())
+                for cand_font, cand_cp in candidates:
+                    cand_char = chr(cand_cp)
+                    cand_base_ft = base.get(cand_font)
+                    if cand_base_ft and cand_char in cand_base_ft:
+                        res = cand_base_ft[cand_char]
+                        if res != ERROR_CHR:
+                            return res
+                    cand_utfc_base_ft = utfc_base.get(cand_font)
+                    if cand_utfc_base_ft and cand_char in cand_utfc_base_ft:
+                        res = cand_utfc_base_ft[cand_char]
+                        if res != ERROR_CHR:
+                            return res
+
         if stats:
             if font_name not in stats["unknown_characters"]:
                 stats["unknown_characters"][font_name] = {}
@@ -123,14 +143,14 @@ def _convert_char(char, font_name, stats=None, error_chr_fun=None):
         return error_chr_fun(char, font_name, ord(char))
     return res if res is not None else utfc_res
 
-def _convert_byte(b, font_name, stats=None, error_chr_fun=None):
+def _convert_byte(b, font_name, stats=None, error_chr_fun=None, glyph_lookup=None):
     """
     b is expected to be a number between 0 and 255
     """
     unic = uni_char_from_encoding(b)
     if unic is None:
         unic = chr(b)
-    return _convert_char(unic, font_name, stats, error_chr_fun)
+    return _convert_char(unic, font_name, stats, error_chr_fun, glyph_lookup)
 
 def normalize_font_name(font_name, weight=None):
     """
@@ -154,7 +174,7 @@ def normalize_font_name(font_name, weight=None):
         font_name += "Skt3"
     return font_name
 
-def convert_string(s, font_name, stats, error_chr_fun=None):
+def convert_string(s, font_name, stats, error_chr_fun=None, glyph_lookup=None):
     """
     Convert a string from a font encoding to Unicode.
     
@@ -165,6 +185,7 @@ def convert_string(s, font_name, stats, error_chr_fun=None):
         error_chr_fun: Optional function to handle unrecognized characters.
                        Signature: error_chr_fun(char, font_name, char_code) -> str
                        If None, uses default_error_chr.
+        glyph_lookup: Optional tuple (forward_map, reverse_map) for glyph-based recovery
     """
     if s.startswith("(cid:"):
         return ""
@@ -181,6 +202,6 @@ def convert_string(s, font_name, stats, error_chr_fun=None):
     stats["handled_fonts"][font_name] += 1
     res = ''
     for char in s:
-        res += _convert_char(char, font_name, stats, error_chr_fun)
+        res += _convert_char(char, font_name, stats, error_chr_fun, glyph_lookup)
     #logging.error("converted %s:%s -> %s" % (font_name, s, res))
     return res

@@ -8,6 +8,7 @@ from .font_utils import (
     get_glyph_db_path,
     build_font_hash_index_from_csv,
     identify_pdf_fonts_from_db,
+    build_glyph_lookup_tables,
 )
 from .normalization import normalize_unicode
 from .font_size_utils import simplify_font_sizes
@@ -71,12 +72,14 @@ def pdf_to_txt(
         
         # Identify fonts from DB and get normalization mapping
         font_normalization = None
+        glyph_lookup = None
         try:
             glyph_db_path = get_glyph_db_path()
             glyph_index = build_font_hash_index_from_csv(str(glyph_db_path))
             font_normalization = identify_pdf_fonts_from_db(doc, glyph_index)
+            glyph_lookup = build_glyph_lookup_tables(str(glyph_db_path))
         except Exception as e:
-            logging.warning(f"Could not load font normalization: {e}")
+            logging.warning(f"Could not load font normalization or glyph lookup: {e}")
         
         rsrcmgr = PDFResourceManager()
         device = DuffedTextConverter(
@@ -89,7 +92,8 @@ def pdf_to_txt(
             font_normalization=font_normalization, 
             error_chr_fun=error_chr_fun, 
             track_font_size=track_font_size, 
-            font_size_format=font_size_format
+            font_size_format=font_size_format,
+            glyph_lookup=glyph_lookup
         )
         interpreter = PDFPageInterpreter(rsrcmgr, device)
         for page in PDFPage.create_pages(doc):

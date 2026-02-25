@@ -25,6 +25,7 @@ __all__ = [
     "identify_pdf_fonts_from_db",
     "build_font_hash_index_from_csv",
     "build_font_hash_index",
+    "build_glyph_lookup_tables",
     "get_glyph_db_path",
     "pdf_to_txt",
 ]
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     from .font_utils import (
         build_font_hash_index,
         build_font_hash_index_from_csv,
+        build_glyph_lookup_tables,
         get_glyph_db_path,
         get_glyph_hashes_from_bytes,
         identify_font,
@@ -57,6 +59,7 @@ _EXPORT_MAP = {
     "identify_pdf_fonts_from_db": (".font_utils", "identify_pdf_fonts_from_db"),
     "build_font_hash_index_from_csv": (".font_utils", "build_font_hash_index_from_csv"),
     "build_font_hash_index": (".font_utils", "build_font_hash_index"),
+    "build_glyph_lookup_tables": (".font_utils", "build_glyph_lookup_tables"),
     "get_glyph_db_path": (".font_utils", "get_glyph_db_path"),
     # utils.py
     "pdf_to_txt": (".utils", "pdf_to_txt"),

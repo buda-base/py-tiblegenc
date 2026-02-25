@@ -32,6 +32,7 @@ from pdfminer.utils import AnyIO, Point, Matrix, Rect, PathSegment, make_compat_
 from pdfminer.utils import apply_matrix_pt
 
 from .char_converter import convert_string
+from .font_utils import get_glyph_db_path, build_glyph_lookup_tables
 import logging
 import sys
 
@@ -259,6 +260,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         error_chr_fun = None,
         track_font_size: bool = False,
         font_size_format: str = "<fs:{}>",
+        glyph_lookup: Optional[Tuple[Dict, Dict]] = None,
     ) -> None:
         super().__init__(rsrcmgr, outfp, codec=codec, pageno=pageno, laparams=laparams)
         self.imagewriter = imagewriter
@@ -274,6 +276,12 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         self.error_chr_fun = error_chr_fun
         self.track_font_size = track_font_size
         self.font_size_format = font_size_format
+        if glyph_lookup is None:
+            try:
+                glyph_lookup = build_glyph_lookup_tables(str(get_glyph_db_path()))
+            except Exception:
+                pass
+        self.glyph_lookup = glyph_lookup
         self.current_font_size = None
         # Keep a handle to the current LTPage so we can apply region tests
         # during render_char (i.e., before layout analysis runs).
@@ -420,7 +428,7 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
                             fontname = next(iter(normalized_set))
         
         fontname = fontname[fontname.find('+')+1:]
-        ctext = convert_string(text, fontname, self.stats, self.error_chr_fun)
+        ctext = convert_string(text, fontname, self.stats, self.error_chr_fun, self.glyph_lookup)
         if ctext is not None:
             text = ctext
         
