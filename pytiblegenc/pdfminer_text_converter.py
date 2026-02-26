@@ -279,7 +279,9 @@ class DuffedTextConverter(PDFConverter[AnyIO]):
         if glyph_lookup is None:
             try:
                 glyph_lookup = build_glyph_lookup_tables(str(get_glyph_db_path()))
-            except Exception:
+                logging.debug(f"Loaded glyph lookup table with {len(glyph_lookup[0])} entries")
+            except Exception as e:
+                logging.warning(f"Failed to load glyph lookup table: {e}")
                 pass
         self.glyph_lookup = glyph_lookup
         self.current_font_size = None
