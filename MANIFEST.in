@@ -1,0 +1,3 @@
+include pytiblegenc/glyph_db.csv
+include pytiblegenc/skt_chars.csv
+recursive-include pytiblegenc/font-tables *.csv
